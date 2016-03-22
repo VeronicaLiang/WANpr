@@ -1,6 +1,7 @@
 /**
  * Main File.
  */
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.ServerSocket.*;
 import java.io.*;
@@ -13,17 +14,22 @@ public class sLSRP {
     }
 
     public static void main(String[] args)throws Exception{
-        String file = "config.ini";
+        Config conf = new Config();
+        conf.register();
+        String file;
+        InetAddress inetAddr = InetAddress.getLocalHost();
         try {
             file = args[0];
-            Config.configuration(file);
+            conf.configuration(file);
 
         } catch (Exception e) {
-
+            e.printStackTrace();
         }
 
-        ip = java.net.InetAddress.getLocalHost().getHostAddress();
-        System.out.println("My ip: " + ip);
+//        ip = inetAddr.getHostAddress();
+//        System.out.println("My ip: " + ip);
+//        String hostname = inetAddr.getHostName();
+//        System.out.println("My host name: "+hostname);
 
 
         ServerThread ser = new ServerThread();
@@ -35,5 +41,7 @@ public class sLSRP {
         // Start the LSA Message Thread
         LSAThread lsa = new LSAThread();
         new Thread(lsa).start();
+
+        //todo delete host_list file
     }
 }
