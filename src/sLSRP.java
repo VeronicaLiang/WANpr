@@ -16,17 +16,18 @@ public class sLSRP {
 
     public static void main(String[] args)throws Exception{
         Config conf = new Config();
-        conf.register();
+//        conf.register();
         String file;
         InetAddress inetAddr = InetAddress.getLocalHost();
         try {
             file = args[0];
             conf.configuration(file);
-            conf.register();
-
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        // connecting to neighbors
+//        for ()
 
 //        ip = inetAddr.getHostAddress();
 //        System.out.println("My ip: " + ip);
