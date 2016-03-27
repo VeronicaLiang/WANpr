@@ -47,7 +47,7 @@ public class sLSRP {
 
         File register_file = new File("host_list");
         try {
-            register_file.delete();
+//            register_file.delete();
         }  catch (Exception e) {
             e.printStackTrace();
         }

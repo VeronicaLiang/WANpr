@@ -1,5 +1,5 @@
 /**
- * Created by Xiaoyu on 3/24/2016.
+ * Neigbor object, contains IP, corresponding Host name, and Port number.
  */
 public class Neighbors {
     public static String IP;
