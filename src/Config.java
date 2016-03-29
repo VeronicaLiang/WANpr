@@ -67,7 +67,7 @@ public class Config {
         }
 
         // Look up the host_list file for each neighbor.
-        while(!Neighbors_List.isEmpty()){
+        while(true){
             Hashtable<String, String> tmp = new Hashtable<>();
             try{
                 FileReader filereader = new FileReader("host_list");
@@ -76,9 +76,10 @@ public class Config {
                     String [] records = line.split("\t");
                     // TODO now hard code the key to the last part of ip, since the containsKey, get doesn't work
                     String [] tmp_addr = records[0].trim().split("\\.");
-                    tmp.put(tmp_addr[tmp_addr.length - 1],records[1].trim());
+                    tmp.put(tmp_addr[tmp_addr.length - 1], records[1].trim());
                 }
                 bufferedreader.close();
+
             }catch (Exception e){
                 e.printStackTrace();
             }
@@ -96,10 +97,16 @@ public class Config {
                 System.out.println("host_name "+ host_name);
                 if(host_name != null){
                     System.out.println("remove one entry");
-                    check_neigh.Dest = tmp.get(check_neigh.IP);
+                    check_neigh.Dest = tmp.get(check_ip[check_ip.length - 1]);
+                    // TODO hard code the port number, need to know how to sign
+                    check_neigh.Port = "4545";
+                    System.out.println(check_neigh.IP + " " + check_neigh.Dest + " " + tmp.get(check_ip[check_ip.length-1]));
                     Neighbors_table.put(check_neigh.IP,check_neigh);
                     Neighbors_List.remove(i);
                 }
+            }
+            if (Neighbors_List.isEmpty()){
+                break;
             }
             System.out.println("list size: "+ Neighbors_List.size());
             try {
