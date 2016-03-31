@@ -7,7 +7,7 @@ public class Packet implements Serializable{
     public String Type;
     public Object Data;
     public String Destination;
-    public int Id;
+    public int Id; //source Router's id
 
     public Packet (int id, String type, String dest_ip){
         this.Id = id;

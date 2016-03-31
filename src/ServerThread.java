@@ -28,6 +28,14 @@ public class ServerThread implements Runnable {
                 switch (packet_type){
                     case "NEIGHBOR_REQUEST":
                         System.out.println("NEIGHBOR REQUEST RECEIVED");
+//                        Connections task = new Connections();
+//                        task.RecvNeghPacket(recv);
+                        Runnable ser = new NeigborRequThread(recv);
+                        new Thread(ser).start();
+                        break;
+                    case "ACK_NEIGH":
+                        System.out.println("Establish Neighbor Relationship");
+                        break;
                 }
                 inputstream.close();
                 clntSock.close();  // Close the socket.  We are done with this client!
