@@ -10,9 +10,11 @@ import java.util.Hashtable;
 
 public class Config {
     public static ArrayList<Neighbors> Neighbors_List = new ArrayList<>();
-    public static Hashtable<String, String> arg = new Hashtable<>();
     public static String ip;
-    public static int Hello_Interval;
+    public static int ROUTER_ID = 0;
+    public static int HELLO_INTERVAL;
+    public static int UPDATE_INTERVAL;
+    public static int FORWARD_INTERVAL;
     public static Hashtable<String, Neighbors> Neighbors_table = new Hashtable<>(); // key is IP address
 
     public static void configuration (String inputFile) throws IOException {
@@ -34,7 +36,16 @@ public class Config {
                         Neighbors new_one = new Neighbors(ip_addr,port_no,"unknown");
                         Neighbors_List.add(new_one);
                     } else {
-                        arg.put(para, val);
+                        switch(para){
+                            case "HELLO_INTERVAL":
+                                HELLO_INTERVAL = Integer.parseInt(val) * 1000;
+                            case "UPDATE_INTERVAL":
+                                UPDATE_INTERVAL = Integer.parseInt(val) * 1000;
+                            case "FORWARD_INTERVAL":
+                                FORWARD_INTERVAL = Integer.parseInt(val) * 1000;
+                            case "ROUTER_ID":
+                                ROUTER_ID = Integer.parseInt(val);
+                        }
                     }
                 }
             }
@@ -50,21 +61,6 @@ public class Config {
         String hostname = inetAddr.getHostName();
         System.out.println("My host name: " + hostname);
         String output = ip + "\t" + hostname + "\t" + "4555\n";
-        // Register self to the file
-        try {
-            File file = new File("host_list");
-            if (!file.exists()) {
-                file.createNewFile();
-                System.out.println("create new file");
-            }
-//            FileWriter fw = new FileWriter(file.getAbsoluteFile(), true);
-//            synchronized (fw) {
-//                fw.write(output);
-//            }
-//            fw.close();
-        }catch (Exception e) {
-            e.printStackTrace();
-        }
 
         // Look up the host_list file for each neighbor.
         while(true){

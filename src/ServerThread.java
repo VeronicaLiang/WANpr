@@ -1,12 +1,14 @@
 import java.net.*;
 import java.io.*;
+import java.io.ObjectInputStream;
 
 /**
- * Created by Xiaoyu on 3/21/2016.
+ * The server side of the router.
  */
 
 public class ServerThread implements Runnable {
     private static final int BUFSIZE = 32;
+    private static final int WINDOWSIZE = 10;
     public void run() {
         try {
             ServerSocket servSock = new ServerSocket(4545);
@@ -20,16 +22,14 @@ public class ServerThread implements Runnable {
                         clntSock.getInetAddress().getHostAddress() + " on port " +
                         clntSock.getPort());
 
-                InputStream in = clntSock.getInputStream();
-                BufferedReader input = new BufferedReader(new InputStreamReader(in));
-                System.out.println(input.readLine());
-                in.close();
-//                OutputStream out = clntSock.getOutputStream();
-//
-//                // Receive until client closes connection, indicated by -1 return
-//                while ((recvMsgSize = in.read(byteBuffer)) != -1)
-//                    out.write(byteBuffer, 0, recvMsgSize);
-
+                ObjectInputStream inputstream = new ObjectInputStream(clntSock.getInputStream());
+                Packet recv = (Packet) inputstream.readObject();
+                String packet_type= recv.Type;
+                switch (packet_type){
+                    case "NEIGHBOR_REQUEST":
+                        System.out.println("NEIGHBOR REQUEST RECEIVED");
+                }
+                inputstream.close();
                 clntSock.close();  // Close the socket.  We are done with this client!
             }
         }catch (Exception e){
