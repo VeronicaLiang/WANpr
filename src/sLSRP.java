@@ -29,18 +29,15 @@ public class sLSRP {
             e.printStackTrace();
         }
 
-        for(int IDs:Config.Neighbors_table.keySet()){
-            System.out.println(IDs + ": " + Config.Neighbors_table.get(IDs).Dest + " " + Config.Neighbors_table.get(IDs).Port);
-            Packet neighbor_request = new Packet(Config.ROUTER_ID,"NEIGHBOR_REQUEST",Config.Neighbors_table.get(IDs).Dest);
-            sendPacket(neighbor_request);
-        }
+        Config.BuildConnections();
+
         // Start the Alive Message Thread
-        AliveMesssage alivemessage = new AliveMesssage();
-        new Thread(alivemessage).start();
+        AliveMessageThread alive = new AliveMessageThread();
+        new Thread(alive).start();
 
         // Start the LSA Message Thread
-        LSAThread lsa = new LSAThread();
-        new Thread(lsa).start();
+//        LSAThread lsa = new LSAThread();
+//        new Thread(lsa).start();
 
 
 //        File register_file = new File("host_list");
@@ -57,7 +54,7 @@ public class sLSRP {
         int servPort = 4545;
 
         try {
-            Socket socket = new Socket(m.Destination, servPort);
+            Socket socket = new Socket(m.getDestination(), servPort);
             System.out.println("Connected to server...");
             ObjectOutputStream outputstream  = new ObjectOutputStream(socket.getOutputStream());
             outputstream.writeObject(m);

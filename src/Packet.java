@@ -4,15 +4,18 @@ import java.io.Serializable;
  */
 public class Packet implements Serializable{
     private static final long serialVersionUID = 5950169519310163575L;
-    public String Type;
-    public Object Data;
-    public String Destination;
-    public int Id; //source Router's id
+    private String Type;
+    private Object Data;
+    private LSAMessage lsa;
+    private String Destination;
+    private int Id; //source Router's id
+    private int Seqno = 0;
 
     public Packet (int id, String type, String dest_ip){
         this.Id = id;
         this.Type = type;
         this.Destination = dest_ip;
+        this.Seqno +=1;
     }
 
     public void setID(int id){
@@ -37,5 +40,13 @@ public class Packet implements Serializable{
 
     public String getDestination(){
         return Destination;
+    }
+
+    public void setLSAMessage(LSAMessage m){
+        this.lsa = m;
+    }
+
+    public int getSeqno(){
+        return Seqno;
     }
 }

@@ -24,17 +24,26 @@ public class ServerThread implements Runnable {
 
                 ObjectInputStream inputstream = new ObjectInputStream(clntSock.getInputStream());
                 Packet recv = (Packet) inputstream.readObject();
-                String packet_type= recv.Type;
+                String packet_type= recv.getType();
                 switch (packet_type){
                     case "NEIGHBOR_REQUEST":
                         System.out.println("NEIGHBOR REQUEST RECEIVED");
-//                        Connections task = new Connections();
-//                        task.RecvNeghPacket(recv);
                         Runnable ser = new NeigborRequThread(recv);
                         new Thread(ser).start();
                         break;
                     case "ACK_NEIGH":
                         System.out.println("Establish Neighbor Relationship");
+                        Connections.AddConnect(recv.getId(),0);
+                        for(int i : Config.Established_Connect.keySet()){
+                            System.out.println(i+"\t"+ Config.Established_Connect.get(i)+"%%%%");
+                        }
+                        System.out.println(Config.Established_Connect.size() + "  *********");
+                        break;
+                    case "ALIVE_MESSAGE":
+                        if(Config.Established_Connect.containsKey(recv.getId())){
+//                            Packet ack = new Packet(Config.ROUTER_ID,"ACK_ALIVE", recv.getId());
+                            System.out.println("This link is alive");
+                        }
                         break;
                 }
                 inputstream.close();

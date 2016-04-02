@@ -3,6 +3,7 @@
  * Reading the configuration file, and setup the initial parameters.
  */
 
+import javax.swing.*;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
@@ -15,7 +16,9 @@ public class Config {
     public static int HELLO_INTERVAL;
     public static int UPDATE_INTERVAL;
     public static int FORWARD_INTERVAL;
+    public static int LSA_INTERVAL = 10000;
     public static Hashtable<Integer, Neighbors> Neighbors_table = new Hashtable<>(); // key is IP address
+    public static Hashtable<Integer, Integer> Established_Connect = new Hashtable<>(); // key is Router ID
 
     public static void configuration (String inputFile) throws IOException {
         String line;
@@ -99,10 +102,10 @@ public class Config {
                 e.printStackTrace();
             }
 
-            System.out.println("after reading the host_list");
+//            System.out.println("after reading the host_list");
             System.out.println(tmp);
             System.out.println(id_table);
-            System.out.println("list size: "+ Neighbors_List.size());
+//            System.out.println("list size: "+ Neighbors_List.size());
 
             for(int i = 0;i<Neighbors_List.size();i++){
                 Neighbors check_neigh = Neighbors_List.get(i);
@@ -113,9 +116,9 @@ public class Config {
                 // TODO again, use only the last part as the key, which should be pay more attention
                 String [] check_ip = check_neigh.IP.split("\\.");
                 String host_name = tmp.get(check_ip[check_ip.length-1]);
-                System.out.println("host_name "+ host_name);
+//                System.out.println("host_name "+ host_name);
                 if(host_name != null){
-                    System.out.println("remove one entry");
+//                    System.out.println("remove one entry");
                     check_neigh.Dest = host_name;
                     // TODO hard code the port number, need to know how to sign
                     check_neigh.Port = "4545";
@@ -136,9 +139,34 @@ public class Config {
                 Thread.currentThread().interrupt();
             }
         }
-        System.out.println(Neighbors_table.size() + " this is how many neighbor I have");
         System.out.println("done with neighbors");
     }
 
+    public static void BuildConnections (){
+        boolean flag = true;
+        while(flag) {
+            for (int IDs : Config.Neighbors_table.keySet()) {
+                if(Config.Established_Connect.containsKey(IDs)){
+                    continue;
+                }
+                System.out.println(IDs + ": " + Config.Neighbors_table.get(IDs).Dest + " " + Config.Neighbors_table.get(IDs).Port);
+                Packet neighbor_request = new Packet(Config.ROUTER_ID, "NEIGHBOR_REQUEST", Config.Neighbors_table.get(IDs).Dest);
+                sLSRP.sendPacket(neighbor_request);
+            }
+
+            System.out.println("Two size is the same? **** ");
+            System.out.println(Config.Established_Connect.size() + "\t" + Config.Neighbors_table.size());
+            if(Config.Established_Connect.size() == Config.Neighbors_table.size()){
+                flag = false;
+            }else{
+                System.out.println("waiting for connecting with neighbors");
+                try{
+                    Thread.sleep(10000);
+                }catch (InterruptedException e){
+                    Thread.currentThread();
+                }
+            }
+        }
+    }
 }
 
