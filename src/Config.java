@@ -17,7 +17,8 @@ public class Config {
     public static int UPDATE_INTERVAL;
     public static int FORWARD_INTERVAL;
     public static int LSA_INTERVAL = 10000;
-    public static Hashtable<Integer, Neighbors> Neighbors_table = new Hashtable<>(); // key is IP address
+    public static Hashtable<Integer, Neighbors> Neighbors_table = new Hashtable<>(); // key is the Router ID
+    // the key is the directed neighbor, value is the cost. At beginning, the cost is set to 0
     public static Hashtable<Integer, Integer> Established_Connect = new Hashtable<>(); // key is Router ID
 
     public static void configuration (String inputFile) throws IOException {
@@ -154,8 +155,8 @@ public class Config {
                 sLSRP.sendPacket(neighbor_request);
             }
 
-            System.out.println("Two size is the same? **** ");
-            System.out.println(Config.Established_Connect.size() + "\t" + Config.Neighbors_table.size());
+//            System.out.println("Two size is the same? **** ");
+//            System.out.println(Config.Established_Connect.size() + "\t" + Config.Neighbors_table.size());
             if(Config.Established_Connect.size() == Config.Neighbors_table.size()){
                 flag = false;
             }else{

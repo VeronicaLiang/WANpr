@@ -37,13 +37,19 @@ public class ServerThread implements Runnable {
                         for(int i : Config.Established_Connect.keySet()){
                             System.out.println(i+"\t"+ Config.Established_Connect.get(i)+"%%%%");
                         }
-                        System.out.println(Config.Established_Connect.size() + "  *********");
                         break;
                     case "ALIVE_MESSAGE":
                         if(Config.Established_Connect.containsKey(recv.getId())){
 //                            Packet ack = new Packet(Config.ROUTER_ID,"ACK_ALIVE", recv.getId());
                             System.out.println("This link is alive");
+                            OutputStream out = clntSock.getOutputStream();
+                            String ack = "ALIVE";
+                            out.write(ack.getBytes());
+                            clntSock.close();
                         }
+                        break;
+                    case "LSA_MESSAGE":
+                        System.out.println("Receive LSA Message");
                         break;
                 }
                 inputstream.close();

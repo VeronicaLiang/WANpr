@@ -18,6 +18,14 @@ public class Packet implements Serializable{
         this.Seqno +=1;
     }
 
+    public Packet (int id, String type, String dest_ip, LSAMessage l){
+        this.Id = id;
+        this.Type = type;
+        this.Destination = dest_ip;
+        this.Seqno +=1;
+        this.lsa = l;
+    }
+
     public void setID(int id){
         this.Id = id;
     }
