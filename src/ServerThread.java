@@ -28,7 +28,7 @@ public class ServerThread implements Runnable {
                 switch (packet_type){
                     case "NEIGHBOR_REQUEST":
                         System.out.println("NEIGHBOR REQUEST RECEIVED");
-                        Runnable ser = new NeigborRequThread(recv);
+                        Runnable ser = new NeighborRequACKThread(recv);
                         new Thread(ser).start();
                         break;
                     case "ACK_NEIGH":
@@ -50,6 +50,9 @@ public class ServerThread implements Runnable {
                         break;
                     case "LSA_MESSAGE":
                         System.out.println("Receive LSA Message");
+                        Runnable lsadb = new LSADatabaseThread(recv);
+                        new Thread(lsadb).start();
+
                         break;
                 }
                 inputstream.close();

@@ -16,6 +16,10 @@ public class sLSRP {
 //    public static ArrayList<Links> links = new ArrayList<>();
 
     public static Hashtable<String, Links> links = new Hashtable<>();
+    public static Hashtable<Integer, LSADatabase> lsadb = new Hashtable<>();
+
+    // the default
+    public static boolean Failure = false;
 
     public sLSRP(String inputFile){
 
@@ -37,7 +41,13 @@ public class sLSRP {
         }
 
         // building connection with direct neighbors.
-        Config.BuildConnections();
+        Runnable connection = new NeighborRequThread();
+        new Thread(connection).start();
+//        Config.BuildConnections();
+
+        // Start the RTT Analysis Thread
+//        RTTAnalysis rtt = new RTTAnalysis();
+//        new Thread(rtt).start();
 
         // Start the Alive Message Thread
         AliveMessageThread alive = new AliveMessageThread();

@@ -1,10 +1,9 @@
 import java.util.Map;
 import java.util.Map.Entry;
 /**
- * Created by Xiaoyu on 3/15/2016.
+ * Periodically generate and send out LSA Messages
  */
 public class LSAThread implements Runnable{
-    long lastHelloTime = 0;
     private int seq_no = 0;
     @Override
     public void run (){
@@ -13,21 +12,13 @@ public class LSAThread implements Runnable{
                 System.out.println("Sending LSA Messages");
                 for(int direct_neigh: Config.Established_Connect.keySet()){
                     this.seq_no += 1;
-                    LSAMessage needsend = GenerateLSA(direct_neigh);
+//                    String linkid = Config.ROUTER_ID+"_"+direct_neigh;
+                    LSAMessage needsend = GenerateLSA(Config.ROUTER_ID);
+                    needsend.setSeqno(this.seq_no);
                     Packet lsapack = new Packet(Config.ROUTER_ID,"LSA_MESSAGE",Config.Neighbors_table.get(direct_neigh).Dest,needsend);
+                    lsapack.setLSAMessage(needsend);
                     sLSRP.sendPacket(lsapack);
                 }
-//                for (Map.Entry<Integer, Link> e : Router.links.entrySet()) {
-//                    if (!e.getValue().toClient) {
-//                        LinkStateAdvertisement lsAdd = Router.lsLogic.generateLSAMessage();
-//                        lsAdd.age = Router.links.size();
-//                        LsaMessage hm = new LsaMessage(Router.id, e.getKey());
-//                        hm.data = lsAdd;
-////						System.out.println("Sending LSA to " + e.getKey());
-//                        e.getValue().send(hm);
-////						System.out.println("Sent");
-//                    }
-//                }
                 Thread.sleep(Config.LSA_INTERVAL);
             }
         } catch (Exception e1) {
@@ -38,12 +29,15 @@ public class LSAThread implements Runnable{
 
     public LSAMessage GenerateLSA(int adver_id){
         LSAMessage lsa = new LSAMessage(adver_id);
+        String key_set = Config.ROUTER_ID+"_";
+        int link_count = 0;
         for (String linkkey: sLSRP.links.keySet()){
-            String key_set = Config.ROUTER_ID+"_";
             if(linkkey.contains(key_set)){
                 lsa.AddLinks(sLSRP.links.get(linkkey));
+                link_count +=1;
             }
         }
+        lsa.setLinkCount(link_count);
         return lsa;
     }
 

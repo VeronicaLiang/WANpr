@@ -57,4 +57,9 @@ public class Packet implements Serializable{
     public int getSeqno(){
         return Seqno;
     }
+
+    public LSAMessage getLSA (){
+        return lsa;
+    }
+
 }

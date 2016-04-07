@@ -3,14 +3,15 @@ import java.util.ArrayList;
 /**
  * Deal with Neighbor Request Packet.
  */
-public class NeigborRequThread implements Runnable {
-//    public Packet recv;
+public class NeighborRequACKThread implements Runnable {
+
     private ArrayList<Packet> queue = new ArrayList<>();
-    public NeigborRequThread (Packet p){
+    public NeighborRequACKThread (Packet p){
         //this.recv = p;
         queue.add(p);
     }
-    public void run (){
+
+    public void run() {
         while(!this.queue.isEmpty()){
             Packet recv = this.queue.get(0);
             int request_id = recv.getId();
