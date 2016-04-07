@@ -17,6 +17,7 @@ public class Config {
     public static int UPDATE_INTERVAL;
     public static int FORWARD_INTERVAL;
     public static int LSA_INTERVAL = 10000;
+    public static int AGE_LIMITATION = 100;
     public static Hashtable<Integer, Neighbors> Neighbors_table = new Hashtable<>(); // key is the Router ID
     // the key is the directed neighbor, value is the cost. At beginning, the cost is set to 0
     public static Hashtable<Integer, Integer> Established_Connect = new Hashtable<>(); // key is Router ID
