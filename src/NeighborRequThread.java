@@ -30,5 +30,7 @@ public class NeighborRequThread implements Runnable {
                 }
             }
         }
+
+        System.out.println("All Connections Have Been Built for Every Neighbor");
     }
 }

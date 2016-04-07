@@ -8,21 +8,24 @@ import java.util.Hashtable;
  */
 public class LSADatabaseThread implements Runnable {
     private ArrayList<Packet> queue = new ArrayList<>();
+    private Packet recv;
+
     public LSADatabaseThread (Packet p){
-        queue.add(p);
+//        queue.add(p);
+        this.recv = p;
     }
     public void run(){
-        while(!this.queue.isEmpty()){
-            Packet recv = this.queue.get(0);
-            LSAMessage cur = recv.getLSA();
-            long now = System.currentTimeMillis();
+        LSAMessage cur = recv.getLSA();
+        long now = System.currentTimeMillis();
 
-            if((now - cur.getTime_created()) > Config.AGE_LIMITATION){
-                //if age is larger than the limitation, too old, ignore
-            }else{
-                //todo the sequence number would be the other condition to judge whether the message is too old
-                int id = Integer.parseInt(cur.getLinkID());
-                LSADatabase workdb = sLSRP.lsadb.get(id);
+        long check_age = now-cur.getTime_created();
+        if(check_age > Config.AGE_LIMITATION){
+            //if age is larger than the limitation, too old, ignore
+            System.out.println("Printing inside the LSADatabaseThread, the message is too old");
+        }else{
+            //todo the sequence number would be the other condition to judge whether the message is too old
+            int id = Integer.parseInt(cur.getLinkID());
+            LSADatabase workdb = sLSRP.lsadb.get(id);
                 if(workdb != null){
                     if(workdb.seqno < cur.getSeqno()){
                         //update lsa database
@@ -38,6 +41,7 @@ public class LSADatabaseThread implements Runnable {
                         sLSRP.lsadb.put(id, workdb);
                         //recalculate routing table
                         int nodecount = CountNodes();
+                        System.out.println("Setting up the Graph ... ");
                         SetupGraph(nodecount);
                     }
                 }else{
@@ -53,15 +57,16 @@ public class LSADatabaseThread implements Runnable {
                         // no matter it existed or not, will update the links
                         sLSRP.links.put(tmp_key, updated.get(i));
                     }
-                    sLSRP.lsadb.put(id, workdb);
+//                    sLSRP.lsadb.put(id, workdb);
 
                     // recalcaulate routing table
                     int nodecount = CountNodes();
+                    System.out.println("Setting up the Graph ... *** with number of nodes: "+ nodecount);
                     SetupGraph(nodecount);
                 }
             }
-            this.queue.remove(0);
-        }
+//            this.queue.remove(0);
+//        }
     }
 
     private int CountNodes (){
@@ -80,21 +85,23 @@ public class LSADatabaseThread implements Runnable {
 
         for(int i = 1; i<=nodecount; i++){
             String router = "Router_" + Integer.toString(i);
-            t.setLabel(i,router);
+            // NOTE: vertex is indexed from 0
+            t.setLabel(i-1,router);
         }
 
         for (String j: sLSRP.links.keySet()){
             Links worklink = sLSRP.links.get(j);
-            t.addEdge(worklink.source, worklink.destination,worklink.cost);
-            t.addEdge(worklink.destination, worklink.source,worklink.cost);
+            System.out.println("Adding Edge: "+ (worklink.source-1)+" -- "+ (worklink.destination-1)+": "+worklink.cost);
+            t.addEdge(worklink.source-1, worklink.destination-1,worklink.cost);
+            t.addEdge(worklink.destination-1, worklink.source-1,worklink.cost);
         }
 
         t.print();
 
         final int [] pred = Dijkstra.dijkstra (t, 0);
-        for (int n=0; n<6; n++) {
-            Dijkstra.printPath (t, pred, 0, n);
-        }
+//        for (int n=0; n<6; n++) {
+//            Dijkstra.printPath (t, pred, 0, n);
+//        }
 
     }
 }

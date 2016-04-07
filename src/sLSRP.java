@@ -30,15 +30,17 @@ public class sLSRP {
     }
 
     public static void main(String[] args)throws Exception{
-        ServerThread ser = new ServerThread();
-        new Thread (ser).start();
-
+        // Read in the parameters, find out neighbors
         try {
             String file = args[0];
             Config.configuration(file);
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        // Start running server side
+        ServerThread ser = new ServerThread();
+        new Thread (ser).start();
 
         // building connection with direct neighbors.
         Runnable connection = new NeighborRequThread();

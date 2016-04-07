@@ -19,6 +19,7 @@ public class LSAMessage implements Serializable{
         //current using the advertising router id as the linkID
         this.LinkID = Integer.toString(aid);
         this.Advertising_Id = aid;
+        this.time_created = System.currentTimeMillis();
     }
 
     public void AddLinks (Links addone){

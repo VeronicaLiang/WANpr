@@ -34,6 +34,10 @@ public class ServerThread implements Runnable {
                     case "ACK_NEIGH":
                         System.out.println("Establish Neighbor Relationship");
                         Connections.AddConnect(recv.getId(),0);
+                        String link_key = Config.ROUTER_ID +"_"+recv.getId();
+                        // Temporarily the directed connected neighbors have cost of 1
+                        Links tmp = new Links(Config.ROUTER_ID, recv.getId(),1);
+                        sLSRP.links.put(link_key, tmp);
                         for(int i : Config.Established_Connect.keySet()){
                             System.out.println(i+"\t"+ Config.Established_Connect.get(i)+"%%%%");
                         }
@@ -52,7 +56,6 @@ public class ServerThread implements Runnable {
                         System.out.println("Receive LSA Message");
                         Runnable lsadb = new LSADatabaseThread(recv);
                         new Thread(lsadb).start();
-
                         break;
                 }
                 inputstream.close();

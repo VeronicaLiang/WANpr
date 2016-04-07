@@ -35,9 +35,9 @@ public class WeightedGraph {
 
     public void print () {
         for (int j=0; j<edges.length; j++) {
-            System.out.print (labels[j]+": ");
+            System.out.println (labels[j]+": ");
             for (int i=0; i<edges[j].length; i++) {
-                if (edges[j][i]>0) System.out.print (labels[i]+":"+edges[j][i]+" ");
+                if (edges[j][i]>0) System.out.println("-> "+ labels[i]+":"+edges[j][i]+" ");
             }
 
             System.out.println ();
