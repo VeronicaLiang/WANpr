@@ -18,9 +18,9 @@ public class ServerThread implements Runnable {
             while(true) { // Run forever, accepting and servicing connections
                 Socket clntSock = servSock.accept();     // Get client connection
 
-                System.out.println("Handling client at " +
-                        clntSock.getInetAddress().getHostAddress() + " on port " +
-                        clntSock.getPort());
+//                System.out.println("Handling client at " +
+//                        clntSock.getInetAddress().getHostAddress() + " on port " +
+//                        clntSock.getPort());
 
                 ObjectInputStream inputstream = new ObjectInputStream(clntSock.getInputStream());
                 Packet recv = (Packet) inputstream.readObject();
@@ -56,6 +56,12 @@ public class ServerThread implements Runnable {
                         System.out.println("Receive LSA Message");
                         Runnable lsadb = new LSADatabaseThread(recv);
                         new Thread(lsadb).start();
+                        break;
+                    case "RTT_ANALYSIS":
+                        OutputStream out = clntSock.getOutputStream();
+                        String ack = "ACK_RTT";
+                        out.write(ack.getBytes());
+                        clntSock.close();
                         break;
                 }
                 inputstream.close();

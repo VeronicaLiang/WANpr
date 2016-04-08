@@ -48,8 +48,8 @@ public class sLSRP {
 //        Config.BuildConnections();
 
         // Start the RTT Analysis Thread
-//        RTTAnalysis rtt = new RTTAnalysis();
-//        new Thread(rtt).start();
+        RTTAnalysis rtt = new RTTAnalysis();
+        new Thread(rtt).start();
 
         // Start the Alive Message Thread
         AliveMessageThread alive = new AliveMessageThread();

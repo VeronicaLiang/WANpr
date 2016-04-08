@@ -29,22 +29,7 @@ public class AliveMessageThread implements Runnable {
                     String links_key = String.valueOf(Config.ROUTER_ID) + "_" + String.valueOf(IDs);
                     if (response.equals("ALIVE")) {
                         System.out.println("receive alive message");
-                        long end = System.currentTimeMillis();
-                        long time = end - start;
-                        System.out.println("passed time in million second is : " + time);
-//                        synchronized (sLSRP.links) {
-//                            if (sLSRP.links.containsKey(links_key)) {
-//                                //update the cost
-//                                Links cur = sLSRP.links.get(links_key);
-//                                cur.active = true;
-//                                cur.cost = (cur.cost + time) / 2;
-////                                System.out.println("updating a link " + Config.ROUTER_ID + " " + IDs + " " + time);
-//                            } else {
-//                                Links newitem = new Links(Config.ROUTER_ID, IDs, time);
-//                                sLSRP.links.put(links_key, newitem);
-////                                System.out.println("Add a new link " + Config.ROUTER_ID + " " + IDs + " " + time);
-//                            }
-//                        }
+
                     } else {
                         synchronized (sLSRP.links){
                             if(sLSRP.links.containsKey(links_key)){
