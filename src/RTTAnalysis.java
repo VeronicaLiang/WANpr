@@ -9,7 +9,7 @@ import java.net.*;
 public class RTTAnalysis implements Runnable{
     public void run(){
         int servPort = 4545;
-        while (true) {
+        while (!sLSRP.Failure) {
             if(sLSRP.Failure){
                 // under failure state, doing nothing
                 continue;
@@ -47,8 +47,6 @@ public class RTTAnalysis implements Runnable{
                     // e.printStackTrace();
                 }
             }
-
-            //update the dijkstra maps
 
             try {
                 Thread.sleep(Config.UPDATE_INTERVAL);

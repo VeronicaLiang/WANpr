@@ -6,10 +6,7 @@ import java.net.ServerSocket;
 import java.net.ServerSocket.*;
 import java.io.*;
 import java.nio.file.NoSuchFileException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.Objects;
+import java.util.*;
 import java.io.ObjectOutputStream;
 
 public class sLSRP {
@@ -18,6 +15,8 @@ public class sLSRP {
     public static Hashtable<String, Links> links = new Hashtable<>();
     public static Hashtable<Integer, LSADatabase> lsadb = new Hashtable<>();
 
+    public static Hashtable<Integer,Integer> router_nodes = new Hashtable<>(); // Key is the router id, value is the vertex id in graph
+
     // the default
     public static boolean Failure = false;
 
@@ -25,7 +24,17 @@ public class sLSRP {
 
     }
 
-    public void User_Interface(){
+    public static void User_Interface(){
+        System.out.println("Please select action:");
+        System.out.println("1: Drop");
+        System.out.println("2: Recover");
+        Scanner sc = new Scanner(System.in);
+        int choice2 = Integer.parseInt(sc.nextLine());
+        if(choice2 == 1){
+            System.out.println("preparing drop the link");
+            Failure = true;
+        }
+
 
     }
 
@@ -59,6 +68,8 @@ public class sLSRP {
         LSAThread lsa = new LSAThread();
         new Thread(lsa).start();
 
+        User_Interface();
+
 
 //        File register_file = new File("host_list");
 //        try {
@@ -66,20 +77,16 @@ public class sLSRP {
 //        }  catch (Exception e) {
 //            e.printStackTrace();
 //        }
+
     }
 
     public static void sendPacket (Packet m){
-        // TODO send packet to destination
-        // hard code the port number
-        int servPort = 4545;
-
+        int servPort = Config.SERV_PORT;
         try {
             Socket socket = new Socket(m.getDestination(), servPort);
-            System.out.println("Connected to server...");
+//            System.out.println("Connected to server...");
             ObjectOutputStream outputstream  = new ObjectOutputStream(socket.getOutputStream());
             outputstream.writeObject(m);
-
-            //TODO currently have the return string here, may be changed later.
             socket.close();
         }catch (UnknownHostException ex){
            // ex.printStackTrace();

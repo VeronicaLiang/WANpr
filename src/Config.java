@@ -17,10 +17,13 @@ public class Config {
     public static int UPDATE_INTERVAL;
     public static int FORWARD_INTERVAL;
     public static int LSA_INTERVAL = 10000;
-    public static int AGE_LIMITATION = 100;
+    public static int AGE_LIMITATION = 100000;
+    public static int SERV_PORT = 4545;
+    public static double DROP_RATE = 0.6;
     public static Hashtable<Integer, Neighbors> Neighbors_table = new Hashtable<>(); // key is the Router ID
     // the key is the directed neighbor, value is the cost. At beginning, the cost is set to 0
     public static Hashtable<Integer, Integer> Established_Connect = new Hashtable<>(); // key is Router ID
+    public static Hashtable<Integer, String> Id_Host = new Hashtable<>(); // key is Router ID, value is the host name
 
     public static void configuration (String inputFile) throws IOException {
         String line;
@@ -29,7 +32,6 @@ public class Config {
             FileReader filereader = new FileReader(inputFile);
             BufferedReader bufferedreader = new BufferedReader(filereader);
             while ((line = bufferedreader.readLine()) != null) {
-//                System.out.println(line);
                 if (line.contains("=")) {
                     String[] tmp = line.split("=");
                     String para = tmp[0].trim();
@@ -97,6 +99,8 @@ public class Config {
                     String [] tmp_addr = records[0].trim().split("\\.");
                     tmp.put(tmp_addr[tmp_addr.length - 1], records[2].trim());
                     id_table.put((tmp_addr[tmp_addr.length - 1]), Integer.parseInt(records[1].trim()));
+                    String [] tmp_host = records[2].trim().split("\\.");
+                    Id_Host.put(Integer.parseInt(records[1].trim()),tmp_host[0].trim());
                 }
                 bufferedreader.close();
 
@@ -107,6 +111,9 @@ public class Config {
 //            System.out.println("after reading the host_list");
             System.out.println(tmp);
             System.out.println(id_table);
+            System.out.println("**************");
+            System.out.println(Id_Host);
+            System.out.println("**************");
 //            System.out.println("list size: "+ Neighbors_List.size());
 
             for(int i = 0;i<Neighbors_List.size();i++){
@@ -142,33 +149,6 @@ public class Config {
             }
         }
         System.out.println("done with neighbors");
-    }
-
-    public static void BuildConnections (){
-        boolean flag = true;
-        while(flag) {
-            for (int IDs : Config.Neighbors_table.keySet()) {
-                if(Config.Established_Connect.containsKey(IDs)){
-                    continue;
-                }
-                System.out.println(IDs + ": " + Config.Neighbors_table.get(IDs).Dest + " " + Config.Neighbors_table.get(IDs).Port);
-                Packet neighbor_request = new Packet(Config.ROUTER_ID, "NEIGHBOR_REQUEST", Config.Neighbors_table.get(IDs).Dest);
-                sLSRP.sendPacket(neighbor_request);
-            }
-
-//            System.out.println("Two size is the same? **** ");
-//            System.out.println(Config.Established_Connect.size() + "\t" + Config.Neighbors_table.size());
-            if(Config.Established_Connect.size() == Config.Neighbors_table.size()){
-                flag = false;
-            }else{
-                System.out.println("waiting for connecting with neighbors");
-                try{
-                    Thread.sleep(10000);
-                }catch (InterruptedException e){
-                    Thread.currentThread();
-                }
-            }
-        }
     }
 }
 

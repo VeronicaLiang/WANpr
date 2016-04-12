@@ -10,6 +10,7 @@ public class Packet implements Serializable{
     private String Destination;
     private int Id; //source Router's id
     private int Seqno = 0;
+    private Integer crc32Code;
 
     public Packet (int id, String type, String dest_ip){
         this.Id = id;
