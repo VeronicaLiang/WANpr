@@ -5,15 +5,19 @@ import java.util.ArrayList;
  */
 public class NeighborRequThread implements Runnable {
 
+    private int seqno = 0;
+
+    @Override
     public void run (){
         boolean flag = true;
-        while(flag) {
+        while(flag && !sLSRP.Failure) {
             for (int IDs : Config.Neighbors_table.keySet()) {
                 if(Config.Established_Connect.containsKey(IDs)){
                     continue;
                 }
-                System.out.println(IDs + ": " + Config.Neighbors_table.get(IDs).Dest + " " + Config.Neighbors_table.get(IDs).Port);
-                Packet neighbor_request = new Packet(Config.ROUTER_ID, "NEIGHBOR_REQUEST", Config.Neighbors_table.get(IDs).Dest);
+//                System.out.println(IDs + ": " + Config.Neighbors_table.get(IDs).Dest + " " + Config.Neighbors_table.get(IDs).Port);
+                Packet neighbor_request = new Packet(Config.ROUTER_ID, "NEIGHBOR_REQUEST", Config.Neighbors_table.get(IDs).Dest,seqno);
+                seqno++;
                 sLSRP.sendPacket(neighbor_request);
             }
 

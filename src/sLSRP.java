@@ -54,7 +54,6 @@ public class sLSRP {
         // building connection with direct neighbors.
         Runnable connection = new NeighborRequThread();
         new Thread(connection).start();
-//        Config.BuildConnections();
 
         // Start the RTT Analysis Thread
         RTTAnalysis rtt = new RTTAnalysis();

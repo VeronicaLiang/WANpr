@@ -31,6 +31,8 @@ public class ServerThread implements Runnable {
                 String packet_type= recv.getType();
 //                double random = ThreadLocalRandom.current().nextDouble(0, 1);
 //                if(random <= Config.DROP_RATE){
+//                    inputstream.close();
+//                    clntSock.close();
 //                    continue;
 //                }
                 switch (packet_type){
@@ -38,6 +40,7 @@ public class ServerThread implements Runnable {
 //                        System.out.println("NEIGHBOR REQUEST RECEIVED");
                         Runnable ser = new NeighborRequACKThread(recv);
                         new Thread(ser).start();
+                        clntSock.close();
                         break;
                     case "ACK_NEIGH":
 //                        System.out.println("Establish Neighbor Relationship");
@@ -49,38 +52,62 @@ public class ServerThread implements Runnable {
                         String link_key = Config.ROUTER_ID +"_"+recv.getId();
                         // Temporarily the directed connected neighbors have cost of 1
                         Links tmp = new Links(Config.ROUTER_ID, recv.getId(),1);
-                        sLSRP.links.put(link_key, tmp);
-//                        for(int i : Config.Established_Connect.keySet()){
-//                            System.out.println(i+"\t"+ Config.Established_Connect.get(i)+"%%%%");
-//                        }
+                        synchronized (sLSRP.links){
+                            sLSRP.links.put(link_key, tmp);
+                        }
+                        clntSock.close();
                         break;
                     case "ALIVE_MESSAGE":
                         if(Config.Established_Connect.containsKey(recv.getId())){
-                            OutputStream out = clntSock.getOutputStream();
-                            String ack = "ALIVE";
-                            out.write(ack.getBytes());
-                            clntSock.close();
-                        }else{
-                            OutputStream out = clntSock.getOutputStream();
-                            String ack = "NOT ALIVE";
-                            out.write(ack.getBytes());
-                            clntSock.close();
+                            int seqno = recv.getSeqno()+1;
+                            Packet neighbor_ack= new Packet(Config.ROUTER_ID, "ACK_ALIVE", Config.Neighbors_table.get(recv.getId()).Dest, seqno);
+                            sLSRP.sendPacket(neighbor_ack);
+//
+//                            OutputStream out = clntSock.getOutputStream();
+//                            String ack = "ALIVE";
+//                            out.write(ack.getBytes());
+//                            clntSock.close();
                         }
+//                        else{
+//                            OutputStream out = clntSock.getOutputStream();
+//                            String ack = "NOT ALIVE";
+//                            out.write(ack.getBytes());
+//                            clntSock.close();
+//                        }
+                        clntSock.close();
+                        break;
+                    case "ACK_ALIVE":
+                        int ackno = recv.getSeqno();
+//                        System.out.println("receive ACK ALIVE");
+                        AliveMessageThread.sentmessages.put(ackno-1, true);
+//                        System.out.println("****************");
+//                        System.out.println(AliveMessageThread.sentmessages);
+//                        System.out.println("****************");
+                        clntSock.close();
                         break;
                     case "LSA_MESSAGE":
 //                        System.out.println("Receive LSA Message");
                         Runnable lsadb = new LSADatabaseThread(recv);
                         new Thread(lsadb).start();
+                        clntSock.close();
                         break;
                     case "RTT_ANALYSIS":
-                        OutputStream out = clntSock.getOutputStream();
-                        String ack = "ACK_RTT";
-                        out.write(ack.getBytes());
+                        Packet rtt_ack= new Packet(Config.ROUTER_ID, "ACK_RTT", Config.Neighbors_table.get(recv.getId()).Dest, recv.getId()+1);
+                        sLSRP.sendPacket(rtt_ack);
+                        clntSock.close();
+//                        OutputStream out = clntSock.getOutputStream();
+//                        String ack = "ACK_RTT";
+//                        out.write(ack.getBytes());
+//                        clntSock.close();
+                        break;
+                    case "ACK_RTT":
+                        long curtime = System.currentTimeMillis();
+                        RTTAnalysis.sentmes.put(recv.getId()-1, curtime);
                         clntSock.close();
                         break;
                 }
                 inputstream.close();
-                clntSock.close();  // Close the socket.  We are done with this client!
+                  // Close the socket.  We are done with this client!
             }
         }catch (Exception e){
             e.printStackTrace();

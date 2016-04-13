@@ -9,7 +9,7 @@ public class LSAThread implements Runnable{
     public void run (){
         try {
             while (!sLSRP.Failure) {
-                System.out.println("Sending LSA Messages");
+//                System.out.println("Sending LSA Messages");
                 for(int direct_neigh: Config.Established_Connect.keySet()){
                     this.seq_no += 1;
                     LSAMessage needsend = GenerateLSA(Config.ROUTER_ID);

@@ -12,11 +12,11 @@ public class Packet implements Serializable{
     private int Seqno = 0;
     private Integer crc32Code;
 
-    public Packet (int id, String type, String dest_ip){
+    public Packet (int id, String type, String dest_ip, int seq){
         this.Id = id;
         this.Type = type;
         this.Destination = dest_ip;
-        this.Seqno +=1;
+        this.Seqno = seq;
     }
 
     public Packet (int id, String type, String dest_ip, LSAMessage l){
@@ -58,6 +58,8 @@ public class Packet implements Serializable{
     public int getSeqno(){
         return Seqno;
     }
+
+    public void setSeqno(int number){ this.Seqno = number;}
 
     public LSAMessage getLSA (){
         return lsa;
