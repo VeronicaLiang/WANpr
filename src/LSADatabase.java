@@ -5,10 +5,11 @@ public class LSADatabase {
     public String linkid;
     public int adv_router;
     public int age;
-    public long seqno;
+    public int seqno;
     public long checksum;
     public int linkcounts;
     public long createdtime;
+    private boolean adv_router_reachable = true;
 
     public void fromLSAMessage(LSAMessage a){
         this.linkid = a.getLinkID();
@@ -18,5 +19,8 @@ public class LSADatabase {
         this.createdtime = a.getTime_created();
     }
 
+    public void changeReachable (boolean val ){
+        this.adv_router_reachable = val;
+    }
 
 }

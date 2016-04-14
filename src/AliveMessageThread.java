@@ -9,82 +9,32 @@ import java.util.logging.Handler;
  * Alive message thread, sending out alive message periodically
  */
 public class AliveMessageThread implements Runnable {
-    public static Hashtable<Integer,Boolean> sentmessages = new Hashtable<>();
+    // record sent packets. key is the seq no, and the packethistory object contains packet, ack, and counts
+    public static Hashtable<Integer, PacketHistory> senthistory = new Hashtable<>();
     private int seq_no = 0;
-    private String lastone = null;
 
     @Override
     public void run(){
         while (!sLSRP.Failure) {
             for (int IDs : Config.Neighbors_table.keySet()) {
-                if(!Config.Established_Connect.containsKey(IDs)){
-                    continue;
+                boolean continue_flag = false;
+                if(senthistory.size()>0) {
+//                    printSentHistory();
+                    continue_flag = checkHistory();
                 }
-                if(lastone != null){
-                    if(!sentmessages.get(seq_no-1)){
-                        // previous one did not receive acknowledgement until now (timer expired)
-                        // do not re-send, since we use counter to indicate links active state.
-                        synchronized (sLSRP.links){
-                            if(sLSRP.links.containsKey(lastone)){
-                                if(sLSRP.links.get(lastone).getNon_Active_Count() > 3){
-                                    // the links cannot be reached at least 3 times, consecutively. Then report the failure
-                                    //TODO failed link needs to take care of. need to send out LSA messsage
-                                }else{
-                                    sLSRP.links.get(lastone).active = false;
-                                    sLSRP.links.get(lastone).IncreaseNonActiveCount();
-                                }
-                            }
-                        }
-                    }else{
-                        synchronized (sLSRP.links){
-                            sLSRP.links.get(lastone).active = true;
-                            sLSRP.links.get(lastone).resetNon_Active_Count();
-                        }
+                if(!continue_flag) {
+                    if (!Config.Established_Connect.containsKey(IDs)) {
+                        continue;
                     }
+
+                    Packet neighbor_request = new Packet(Config.ROUTER_ID, "ALIVE_MESSAGE", Config.Neighbors_table.get(IDs).Dest, seq_no);
+                    sLSRP.sendPacket(neighbor_request);
+                    synchronized (senthistory) {
+                        senthistory.put(seq_no, new PacketHistory(neighbor_request, IDs));
+                    }
+                    seq_no++;
                 }
 
-                Packet neighbor_request = new Packet(Config.ROUTER_ID, "ALIVE_MESSAGE", Config.Neighbors_table.get(IDs).Dest, seq_no);
-                sLSRP.sendPacket(neighbor_request);
-                lastone = String.valueOf(Config.ROUTER_ID) + "_" + String.valueOf(IDs);
-                sentmessages.put(seq_no,false);
-                seq_no++;
-//                System.out.println("sending ALIVE MESSAGE to "+ IDs);
-//                try {
-//                    Socket socket = new Socket(Config.Neighbors_table.get(IDs).Dest, servPort);
-//                    ObjectOutputStream outputstream = new ObjectOutputStream(socket.getOutputStream());
-//                    outputstream.writeObject(neighbor_request);
-//
-//                    BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-//                    String response = in.readLine();
-//                    String links_key = String.valueOf(Config.ROUTER_ID) + "_" + String.valueOf(IDs);
-//                    if (response.equals("ALIVE")) {
-//                        System.out.println("receive alive message");
-//                        synchronized (sLSRP.links){
-//                            sLSRP.links.get(links_key).active = true;
-//                            sLSRP.links.get(links_key).resetNon_Active_Count();
-//                        }
-//                    } else {
-//                        synchronized (sLSRP.links){
-//                            if(sLSRP.links.containsKey(links_key)){
-//                                if(sLSRP.links.get(links_key).getNon_Active_Count() > 3){
-//                                    // the links cannot be reached at least 3 times, consecutively.
-//                                    //TODO failed link needs to take care of. need to send out LSA messsage
-//                                }else{
-//                                    sLSRP.links.get(links_key).active = false;
-//                                    sLSRP.links.get(links_key).IncreaseNonActiveCount();
-//                                }
-//                            }
-//                        }
-//                    }
-//                    // TODO: add a timer
-//                    socket.close();
-//                } catch (UnknownHostException ex) {
-//                    // ex.printStackTrace();
-//                } catch (ConnectException e) {
-//                    // e.printStackTrace();
-//                } catch (IOException e) {
-//                    // e.printStackTrace();
-//                }
                 try {
                     // A Round of Robbin Fashion
                     Thread.sleep(Config.HELLO_INTERVAL);
@@ -92,6 +42,50 @@ public class AliveMessageThread implements Runnable {
                     Thread.currentThread().interrupt();
                 }
             }
+        }
+    }
+
+    private boolean checkHistory(){
+        boolean resend_flag = false;
+        for(int seq_key: senthistory.keySet()){
+            PacketHistory check = senthistory.get(seq_key);
+            String linkkey = Config.ROUTER_ID + "_" + check.getDest_id();
+//            String re_linkkey = check.getDest_id() + "_" + Config.ROUTER_ID;
+            if(check.getAck()){
+                //remove ones that have acked.
+//                System.out.println("remove ACKED element");
+                senthistory.remove(seq_key);
+            }else{
+                if(check.getCounts()>=3){
+                    // update links
+                    synchronized (sLSRP.links){
+                        if(sLSRP.links.containsKey(linkkey)){
+                            sLSRP.links.get(linkkey).cost = Double.MAX_VALUE;
+                            sLSRP.links.get(linkkey).active = false;
+                        }
+//                        if(sLSRP.links.containsKey(re_linkkey)){
+//                            sLSRP.links.get(re_linkkey).cost = Double.MAX_VALUE;
+//                            sLSRP.links.get(re_linkkey).active = false;
+//                        }
+                    }
+                    // send out LAS failure message
+//                    Runnable lsaf = new FailureLSAThread(linkkey);
+//                    new Thread(lsaf).start();
+                    senthistory.remove(seq_key);
+                }else{
+                    senthistory.get(seq_key).increasCounts();
+                    sLSRP.sendPacket(check.getPacket());
+                    resend_flag = true;
+                }
+            }
+        }
+        return resend_flag;
+    }
+
+    public void printSentHistory(){
+        System.out.println("seq_no\tACK\tCounts\tDest_Router_ID");
+        for(int seq_no_key: senthistory.keySet()){
+            System.out.println(seq_no_key+"\t"+senthistory.get(seq_no_key).getAck()+"\t"+senthistory.get(seq_no_key).getCounts()+"\t"+senthistory.get(seq_no_key).getDest_id());
         }
     }
 

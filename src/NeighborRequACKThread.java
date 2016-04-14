@@ -14,7 +14,7 @@ public class NeighborRequACKThread implements Runnable {
 
     @Override
     public void run() {
-        while(true){
+//        while(true){
             Packet recv = this.task;
             int request_id = recv.getId();
 //            System.out.println(request_id);
@@ -34,5 +34,5 @@ public class NeighborRequACKThread implements Runnable {
 //                sLSRP.sendPacket(rej);
 //            }
         }
-    }
+//    }
 }

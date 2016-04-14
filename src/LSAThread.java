@@ -1,5 +1,7 @@
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
+
 /**
  * Periodically generate and send out LSA Messages to neighbors
  */
@@ -9,14 +11,13 @@ public class LSAThread implements Runnable{
     public void run (){
         try {
             while (!sLSRP.Failure) {
-//                System.out.println("Sending LSA Messages");
                 for(int direct_neigh: Config.Established_Connect.keySet()){
-                    this.seq_no += 1;
                     LSAMessage needsend = GenerateLSA(Config.ROUTER_ID);
                     needsend.setSeqno(this.seq_no);
                     Packet lsapack = new Packet(Config.ROUTER_ID,"LSA_MESSAGE",Config.Neighbors_table.get(direct_neigh).Dest,needsend);
                     lsapack.setLSAMessage(needsend);
                     sLSRP.sendPacket(lsapack);
+                    this.seq_no ++;
                 }
                 //todo  Round of Robbin Fashion.
                 Thread.sleep(Config.LSA_INTERVAL);

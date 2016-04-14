@@ -14,6 +14,12 @@ public class sLSRP {
 
     public static Hashtable<String, Links> links = new Hashtable<>();
     public static Hashtable<Integer, LSADatabase> lsadb = new Hashtable<>();
+    public static Object sf_path;
+    public static WeightedGraph graph = new WeightedGraph (1);
+    public static int edgeno ;
+
+    // key is the destination Router Id, value is the forwarding Router Id
+    public static Hashtable<Integer, Integer> routing_table = new Hashtable<>();
 
     public static Hashtable<Integer,Integer> router_nodes = new Hashtable<>(); // Key is the router id, value is the vertex id in graph
 
@@ -25,14 +31,29 @@ public class sLSRP {
     }
 
     public static void User_Interface(){
-        System.out.println("Please select action:");
-        System.out.println("1: Drop");
-        System.out.println("2: Recover");
-        Scanner sc = new Scanner(System.in);
-        int choice2 = Integer.parseInt(sc.nextLine());
-        if(choice2 == 1){
-            System.out.println("preparing drop the link");
-            Failure = true;
+        boolean running_flag = true;
+        while(running_flag) {
+            System.out.println("Please select action:");
+            System.out.println("1: Drop");
+            System.out.println("2: Recover");
+            System.out.println("4: Print Out the Shortest Path Result");
+            Scanner sc = new Scanner(System.in);
+            int choice2 = Integer.parseInt(sc.nextLine());
+            switch (choice2) {
+                case 1:
+                    System.out.println("preparing drop the link");
+                    Failure = true;
+                    break;
+                case 2:
+                    break;
+                case 3:
+                    running_flag = false;
+                    break;
+                case 4:
+                    sLSRP.graph.print();
+                    break;
+
+            }
         }
 
 
@@ -40,6 +61,10 @@ public class sLSRP {
 
     public static void main(String[] args)throws Exception{
         // Read in the parameters, find out neighbors
+        if(args.length > 1){
+            sLSRP.edgeno = Integer.parseInt(args[1]);
+        }
+
         try {
             String file = args[0];
             Config.configuration(file);

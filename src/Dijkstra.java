@@ -47,7 +47,27 @@ public class Dijkstra {
             x = pred[x];
         }
         path.add (0, G.getLabel(s));
-        System.out.println (path);
+        if(sLSRP.sf_path != null) {
+            synchronized (sLSRP.sf_path) {
+                sLSRP.sf_path = path;
+            }
+        }else{
+            sLSRP.sf_path = path;
+        }
+//        System.out.println (path);
+//        if(path.get(0).toString().equals(Config.ROUTER_ID)){
+            //update the routing table
+        if(path.size()>1){
+            String destr = path.get(path.size()-1).toString();
+            String [] tmp = destr.split("_");
+            String forwardr = path.get(1).toString();
+            String [] tmp2 = forwardr.split("_");
+            synchronized (sLSRP.routing_table) {
+                sLSRP.routing_table.put(Integer.parseInt(tmp[1]), Integer.parseInt(tmp2[1]));
+//                System.out.println("update the routing table ###################");
+//                System.out.println(sLSRP.routing_table);
+            }
+        }
     }
 }
 

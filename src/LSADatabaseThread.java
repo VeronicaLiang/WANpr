@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.concurrent.SynchronousQueue;
 
 /**
  * deal with LSA messages.
@@ -8,6 +9,7 @@ import java.util.Hashtable;
  */
 public class LSADatabaseThread implements Runnable {
     private Packet recv;
+    private boolean converge = false;
 
     public LSADatabaseThread (Packet p){
         this.recv = p;
@@ -22,31 +24,42 @@ public class LSADatabaseThread implements Runnable {
             System.out.println("Printing inside the LSADatabaseThread, the message is too old");
             //The package should not be passed out.
         }else{
-            //forwarding to neighbors.
-            for(int direct_neigh: Config.Established_Connect.keySet()){
-                if(direct_neigh != recv.getId()) {
-                    Packet lsapack = new Packet(Config.ROUTER_ID, "LSA_MESSAGE", Config.Neighbors_table.get(direct_neigh).Dest, cur);
-                    lsapack.setLSAMessage(cur);
-                    sLSRP.sendPacket(lsapack);
-                }
-            }
-            //todo the sequence number would be the other condition to judge whether the message is too old
             int id = Integer.parseInt(cur.getLinkID());
             LSADatabase workdb = sLSRP.lsadb.get(id);
-            if(workdb != null){
-                if(workdb.seqno < cur.getSeqno()){
-                    //update lsa database
-                    workdb.seqno = cur.getSeqno();
-                    sLSRP.lsadb.put(id, workdb);
+            if(workdb != null) {
+                if (cur.getSeqno() > sLSRP.lsadb.get(id).seqno) {
+                    // a more recent one coming
+                    // update links, lsa database
+                    // forward to neighbors
+//                    System.out.println("&&&&&&&&&&&&&&");
+//                    System.out.println("LSA is from " + recv.getId());
+                    for(int direct_neigh: Config.Established_Connect.keySet()){
+                        if(direct_neigh != recv.getId()) {
+//                            System.out.println("passing to neighbors: "+direct_neigh);
+                            Packet lsapack = new Packet(Config.ROUTER_ID, "LSA_MESSAGE", Config.Neighbors_table.get(direct_neigh).Dest, cur);
+                            lsapack.setLSAMessage(cur);
+                            sLSRP.sendPacket(lsapack);
+                        }
+                    }
+//                    System.out.println(workdb.seqno + " " + cur.getSeqno());
+//                    System.out.println("&&&&&&&&&&&&&&");
+                    if(workdb.seqno < cur.getSeqno()){
+                        //update lsa database
+                        workdb.seqno = cur.getSeqno();
+                        sLSRP.lsadb.put(id, workdb);
 
-                    //update linkstates
-                    UpdateLinks(cur);
+                        //update linkstates
+                        UpdateLinks(cur);
+                    }
+
+                }else{
+                    // ignore the message
                 }
             }else{
                 // no entry in lsa database for this router, add new one
                 LSADatabase newentry = new LSADatabase();
                 newentry.fromLSAMessage(cur);
-                sLSRP.lsadb.put(Integer.parseInt(cur.getLinkID()),newentry);
+                sLSRP.lsadb.put(Integer.parseInt(cur.getLinkID()), newentry);
 
                 // update linkstates
                 UpdateLinks(cur);
@@ -57,9 +70,9 @@ public class LSADatabaseThread implements Runnable {
     private int CountNodes (){
         for(String j: sLSRP.links.keySet()){
             String [] records = j.split("_");
-            System.out.println(j);
+//            System.out.println(j);
             sLSRP.router_nodes.put(Integer.parseInt(records[0]), 0);
-            sLSRP.router_nodes.put(Integer.parseInt(records[1]),0);
+            sLSRP.router_nodes.put(Integer.parseInt(records[1]), 0);
         }
         sLSRP.router_nodes.put(Config.ROUTER_ID,0);
 
@@ -80,14 +93,23 @@ public class LSADatabaseThread implements Runnable {
 
         for (String j: sLSRP.links.keySet()){
             Links worklink = sLSRP.links.get(j);
-            System.out.println("Adding Edge: "+ (worklink.source-1)+" -- "+ (worklink.destination-1)+": "+worklink.cost);
+//            System.out.println("Adding Edge: "+ (worklink.source-1)+" -- "+ (worklink.destination-1)+": "+worklink.cost);
             int start = sLSRP.router_nodes.get(worklink.source);
             int end = sLSRP.router_nodes.get(worklink.destination);
             t.addEdge(start, end, worklink.cost);
             t.addEdge(end, start,worklink.cost);
         }
 
-        t.print();
+        System.out.println("edge no: "+t.getEdgeCounts()+" should be "+sLSRP.edgeno+" whether converge "+converge);
+        if(t.getEdgeCounts() == sLSRP.edgeno && converge == false){
+            System.out.println("Converge");
+            t.print();
+            converge = true;
+        }
+        synchronized (sLSRP.graph){
+            sLSRP.graph = t;
+        }
+//        t.print();
 
         int source_id = sLSRP.router_nodes.get(Config.ROUTER_ID);
         final int [] pred = Dijkstra.dijkstra (t, source_id);
@@ -125,7 +147,7 @@ public class LSADatabaseThread implements Runnable {
             //recalculate routing table
             //if no updates, the routing table does not need to be recalculated
             int nodecount = CountNodes();
-            System.out.println("Setting up the Graph ... with "+nodecount+" nodes");
+//            System.out.println("Setting up the Graph ... with "+nodecount+" nodes");
             SetupGraph(nodecount);
         }
     }

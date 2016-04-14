@@ -9,7 +9,7 @@ public class Packet implements Serializable{
     private LSAMessage lsa;
     private String Destination;
     private int Id; //source Router's id
-    private int Seqno = 0;
+    private int Seqno;
     private Integer crc32Code;
 
     public Packet (int id, String type, String dest_ip, int seq){
@@ -23,7 +23,7 @@ public class Packet implements Serializable{
         this.Id = id;
         this.Type = type;
         this.Destination = dest_ip;
-        this.Seqno +=1;
+//        this.Seqno = seq;
         this.lsa = l;
     }
 
