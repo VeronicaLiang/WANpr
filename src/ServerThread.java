@@ -1,6 +1,7 @@
 import java.net.*;
 import java.io.*;
 import java.io.ObjectInputStream;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -30,15 +31,18 @@ public class ServerThread implements Runnable {
                     ObjectInputStream inputstream = new ObjectInputStream(clntSock.getInputStream());
                     Packet recv = (Packet) inputstream.readObject();
                     String packet_type = recv.getType();
-//                  double random = ThreadLocalRandom.current().nextDouble(0, 1);
-//                  if(random <= Config.DROP_RATE){
-//                      inputstream.close();
-//                      clntSock.close();
-//                      continue;
-//                  }
+
+                    double dropval = Math.random();
+//                    System.out.println("Receive Packet "+packet_type+"  "+dropval);
+                    if(dropval < Config.DROP_RATE){
+//                        System.out.println("Packet is dropped due to the congestion ");
+                        inputstream.close();
+                        clntSock.close();
+                        continue;
+                    }
 //                    System.out.println("Receive a Packet with seqno: "+recv.getSeqno() +" with type of "+recv.getType());
                     int ack_seqno = recv.getSeqno()+1;
-//                    System.out.println("ACK_SEQ_NO is : "+ack_seqno);
+//
                     switch (packet_type) {
                         case "NEIGHBOR_REQUEST":
 //                          System.out.println("NEIGHBOR REQUEST RECEIVED");
@@ -80,15 +84,22 @@ public class ServerThread implements Runnable {
                             break;
                         case "ACK_ALIVE":
                             int ackno = recv.getSeqno() - 1;
-                            if(AliveMessageThread.senthistory.containsKey(ackno)) {
-                                synchronized (AliveMessageThread.senthistory) {
-                                    AliveMessageThread.senthistory.get(ackno).setAck(true);
+                            if(AliveMessageThread.alivesenthistory.containsKey(ackno)) {
+                                synchronized (AliveMessageThread.alivesenthistory) {
+                                    AliveMessageThread.alivesenthistory.get(ackno).setAck(true);
                                 }
                             }
                             clntSock.close();
                             break;
                         case "LSA_MESSAGE":
-//                          System.out.println("Receive LSA Message");
+                            System.out.println("*******");
+                            System.out.println("Receive LSA Message from router "+recv.getId()+" "+Config.Neighbors_table.get(recv.getId()).Dest );
+                            System.out.println("ACK_SEQ_NO is : "+ack_seqno);
+                            System.out.println("*******");
+                            LSAMessage receivelsa = recv.getLSA();
+                            int lsaackno = receivelsa.getSeqno() + 1;
+                            Packet lsa_ack = new Packet(Config.ROUTER_ID, "ACK_LSA", Config.Neighbors_table.get(recv.getId()).Dest,lsaackno);
+                            sLSRP.sendPacket(lsa_ack);
                             Runnable lsadb = new LSADatabaseThread(recv);
                             new Thread(lsadb).start();
                             clntSock.close();
@@ -97,30 +108,44 @@ public class ServerThread implements Runnable {
                             Packet rtt_ack = new Packet(Config.ROUTER_ID, "ACK_RTT", Config.Neighbors_table.get(recv.getId()).Dest,ack_seqno);
                             sLSRP.sendPacket(rtt_ack);
                             clntSock.close();
-//                          OutputStream out = clntSock.getOutputStream();
-//                          String ack = "ACK_RTT";
-//                          out.write(ack.getBytes());
-//                          clntSock.close();
                             break;
                         case "ACK_RTT":
 //                            System.out.println("Received the ACK_RTT message");
                             int ackrttno = recv.getSeqno() - 1;
 //                            System.out.println(recv.getSeqno() + " \t " + ackrttno);
 
-                            if(RTTAnalysis.senthistory.get(ackrttno) != null){
+                            PacketHistory rttcheckone = RTTAnalysis.senthistory.get(ackrttno);
+                            if(rttcheckone != null){
+                                int rttcheckone_destid = rttcheckone.getDest_id();
                                 synchronized (RTTAnalysis.senthistory){
                                     RTTAnalysis.senthistory.get(ackrttno).setAck(true);
                                 }
                                 long curtime = System.currentTimeMillis();
-                                long time = curtime - RTTAnalysis.senthistory.get(ackrttno).getSendtime();
+                                long time = curtime - rttcheckone.getSendtime();
+                                System.out.println("ACK_RTT for seq_no "+ ackrttno +" received in "+time+" million seconds");
                                 synchronized (sLSRP.links){
-                                    double prev_cost = sLSRP.links.get(Config.ROUTER_ID+"_"+RTTAnalysis.senthistory.get(ackrttno).getDest_id()).cost;
-                                    sLSRP.links.get(Config.ROUTER_ID+"_"+RTTAnalysis.senthistory.get(ackrttno).getDest_id()).cost = (prev_cost + time) / 2;
-                                    sLSRP.links.get(Config.ROUTER_ID+"_"+RTTAnalysis.senthistory.get(ackrttno).getDest_id()).active = true;
+                                    double prev_cost = sLSRP.links.get(Config.ROUTER_ID+"_"+rttcheckone.getDest_id()).cost;
+                                    sLSRP.links.get(Config.ROUTER_ID+"_"+rttcheckone.getDest_id()).cost = (prev_cost + time) / 2;
+                                    sLSRP.links.get(Config.ROUTER_ID+"_"+rttcheckone.getDest_id()).active = true;
                                 }
                             }
                             clntSock.close();
                             break;
+                        case "FAILURE_LSA":
+                            System.out.println("Receive the LSA Failure Message from "+ recv.getId());
+                            Runnable faillsadb = new LSADatabaseThread(recv);
+                            new Thread(faillsadb).start();
+                            clntSock.close();
+                            break;
+                        case "ACK_LSA":
+                            int acklsano = recv.getSeqno() - 1;
+                            System.out.println("Server Receive ACK_LSA for "+acklsano + "!!!!!");
+                            PacketHistory lsacheckone = LSAThread.lsasenthistory.get(acklsano);
+                            if(lsacheckone != null){
+                                synchronized (LSAThread.lsasenthistory){
+                                    LSAThread.lsasenthistory.get(acklsano).setAck(true);
+                                }
+                            }
                     }
                     inputstream.close();
                 }catch (UnknownHostException ex) {

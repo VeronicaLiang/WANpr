@@ -15,6 +15,7 @@ public class Dijkstra {
         dist[s] = 0;
         for (int i=0; i<dist.length; i++) {
             final int next = minVertex (dist, visited);
+//            System.out.println("this is the next vertex ####### "+next);
             visited[next] = true;
             // The shortest path to next is dist[next] and via pred[next].
             final int [] n = G.neighbors (next);
@@ -31,7 +32,7 @@ public class Dijkstra {
     }
 
     private static int minVertex (double [] dist, boolean [] v) {
-        double x = Integer.MAX_VALUE;
+        double x = Double.MAX_VALUE;
         int y = -1;   // graph not connected, or no unvisited vertices
         for (int i=0; i<dist.length; i++) {
             if (!v[i] && dist[i]<x) {y=i; x=dist[i];}

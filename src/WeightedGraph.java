@@ -19,10 +19,12 @@ public class WeightedGraph {
         int count = 0;
         for (int j=0; j<edges.length; j++) {
             for (int i=0; i<edges[j].length; i++) {
-                count ++;
+                if (edges[j][i]>0) {
+                    count++;
+                }
             }
         }
-        return count;
+        return count/2;
     }
 
     public void    addEdge    (int source, int target, double w)  { edges[source][target] = w; }

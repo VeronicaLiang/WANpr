@@ -17,6 +17,8 @@ public class sLSRP {
     public static Object sf_path;
     public static WeightedGraph graph = new WeightedGraph (1);
     public static int edgeno ;
+    public static boolean converge = false;
+    public static long starttime;
 
     // key is the destination Router Id, value is the forwarding Router Id
     public static Hashtable<Integer, Integer> routing_table = new Hashtable<>();
@@ -45,6 +47,8 @@ public class sLSRP {
                     Failure = true;
                     break;
                 case 2:
+                    System.out.println("Reovering the router ... ");
+                    Failure = false;
                     break;
                 case 3:
                     running_flag = false;
@@ -65,6 +69,7 @@ public class sLSRP {
             sLSRP.edgeno = Integer.parseInt(args[1]);
         }
 
+        sLSRP.starttime = System.currentTimeMillis();
         try {
             String file = args[0];
             Config.configuration(file);
@@ -81,16 +86,16 @@ public class sLSRP {
         new Thread(connection).start();
 
         // Start the RTT Analysis Thread
-        RTTAnalysis rtt = new RTTAnalysis();
-        new Thread(rtt).start();
+//        RTTAnalysis rtt = new RTTAnalysis();
+//        new Thread(rtt).start();
 
         // Start the Alive Message Thread
         AliveMessageThread alive = new AliveMessageThread();
         new Thread(alive).start();
 
         // Start the LSA Message Thread
-        LSAThread lsa = new LSAThread();
-        new Thread(lsa).start();
+//        LSAThread lsa = new LSAThread();
+//        new Thread(lsa).start();
 
         User_Interface();
 

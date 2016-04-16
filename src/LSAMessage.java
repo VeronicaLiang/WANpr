@@ -9,17 +9,36 @@ public class LSAMessage implements Serializable{
     private int age;
     private String LinkID;
     private ArrayList<Links> adv_links = new ArrayList<>();
-    private String Type = "LSA";
+    private String Type = null;
     private int Advertising_Id;
     private long time_created;
     private int LinkCount = 0;
     private int seqno;
+    private String Faillink = null; // only for FAILURE LSA
 
     public LSAMessage(int aid){
         //current using the advertising router id as the linkID
         this.LinkID = Integer.toString(aid);
         this.Advertising_Id = aid;
         this.time_created = System.currentTimeMillis();
+        this.Type = "LSA";
+    }
+
+    public LSAMessage(int aid, String faillink){
+        this.LinkID = Integer.toString(aid);
+        this.Advertising_Id = aid;
+        this.time_created = System.currentTimeMillis();
+        this.Faillink = faillink;
+        this.Type = "FAIL_LSA";
+
+    }
+
+    public String getFaillink(){
+        return this.Faillink;
+    }
+
+    public String getType(){
+        return this.Type;
     }
 
     public void AddLinks (Links addone){

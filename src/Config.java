@@ -13,13 +13,15 @@ public class Config {
     public static ArrayList<Neighbors> Neighbors_List = new ArrayList<>();
     public static String ip;
     public static int ROUTER_ID = -1;
-    public static int HELLO_INTERVAL;
-    public static int UPDATE_INTERVAL;
+    public static int HELLO_INTERVAL = 5000;  // send ALIVE message every 5 seconds
+    public static int UPDATE_INTERVAL = 10000;
     public static int FORWARD_INTERVAL;
-    public static int LSA_INTERVAL = 10000;
-    public static int AGE_LIMITATION = 100000;
-    public static int SERV_PORT = 4545;
-    public static double DROP_RATE = 0.6;
+    public static int LSA_INTERVAL = 10000;    // send LSA message every 10 seconds
+    public static int AGE_LIMITATION = 1000000;
+    public static long LSA_TIMER = 5000;       // the timer is 5 seconds
+    public static long ALIVE_TIMER = 5000;
+    public static int SERV_PORT = 5574;
+    public static double DROP_RATE = 0.1;
     public static Hashtable<Integer, Neighbors> Neighbors_table = new Hashtable<>(); // key is the Router ID
     // the key is the directed neighbor, value is the cost. At beginning, the cost is set to 0
     public static Hashtable<Integer, Integer> Established_Connect = new Hashtable<>(); // key is Router ID
@@ -44,11 +46,11 @@ public class Config {
                         Neighbors new_one = new Neighbors(ip_addr,"unknown",port_no, -1);
                         Neighbors_List.add(new_one);
                     } else if(para.equals("HELLO_INTERVAL")) {
-                        HELLO_INTERVAL = Integer.parseInt(val) * 1000;
+//                        HELLO_INTERVAL = Integer.parseInt(val) * 1000;
                     }else if(para.equals("UPDATE_INTERVAL")) {
-                        UPDATE_INTERVAL = Integer.parseInt(val) * 1000;
+//                        UPDATE_INTERVAL = Integer.parseInt(val) * 1000;
                     }else if(para.equals("FORWARD_INTERVAL")) {
-                        FORWARD_INTERVAL = Integer.parseInt(val) * 1000;
+//                        FORWARD_INTERVAL = Integer.parseInt(val) * 1000;
                     }else if(para.equals("ROUTER_ID")){
                         ROUTER_ID = Integer.parseInt(val);
                     }

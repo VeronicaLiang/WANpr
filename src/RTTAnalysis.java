@@ -25,7 +25,8 @@ public class RTTAnalysis implements Runnable{
                     continue;
                 }
                 boolean resendflag = false;
-                if(senthistory.size()>0){
+                int cur_size = senthistory.size();
+                if(cur_size>0){
 //                    printSentHistory();
                     resendflag = checkHistory();
                 }
@@ -60,11 +61,14 @@ public class RTTAnalysis implements Runnable{
             if(check.getAck()){
                 //remove ones that have acked.
 //                System.out.println("remove ACKED element");
+                synchronized (senthistory){
+                    senthistory.remove(seq_key);
+                }
 
             }else{
                 synchronized (sLSRP.links) {
                     if (sLSRP.links.containsKey(linkkey)) {
-                        sLSRP.links.get(linkkey).cost = Double.MAX_VALUE;
+                        sLSRP.links.get(linkkey).cost = Integer.MAX_VALUE;
                     }
                 }
                 Packet resendp = check.getPacket();
@@ -77,10 +81,11 @@ public class RTTAnalysis implements Runnable{
                 }
                 this.seqno++;
                 resend_flag = true;
+                synchronized (senthistory){
+                    senthistory.remove(seq_key);
+                }
             }
-            synchronized (senthistory){
-                senthistory.remove(seq_key);
-            }
+
         }
         return resend_flag;
 

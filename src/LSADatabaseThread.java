@@ -1,3 +1,4 @@
+import javax.annotation.processing.SupportedSourceVersion;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.concurrent.SynchronousQueue;
@@ -9,48 +10,45 @@ import java.util.concurrent.SynchronousQueue;
  */
 public class LSADatabaseThread implements Runnable {
     private Packet recv;
-    private boolean converge = false;
+    private boolean printmap = false;
 
     public LSADatabaseThread (Packet p){
         this.recv = p;
     }
+
     public void run(){
         LSAMessage cur = recv.getLSA();
+//        int initialid = cur.getAdvertising_Id();
         long now = System.currentTimeMillis();
 
         long check_age = now-cur.getTime_created();
         if(check_age > Config.AGE_LIMITATION){
             //if age is larger than the limitation, too old, ignore
             System.out.println("Printing inside the LSADatabaseThread, the message is too old");
-            //The package should not be passed out.
+            //ignore the packet.
         }else{
             int id = Integer.parseInt(cur.getLinkID());
             LSADatabase workdb = sLSRP.lsadb.get(id);
+            String lsa_type = recv.getType();
             if(workdb != null) {
-                if (cur.getSeqno() > sLSRP.lsadb.get(id).seqno) {
-                    // a more recent one coming
-                    // update links, lsa database
-                    // forward to neighbors
-//                    System.out.println("&&&&&&&&&&&&&&");
-//                    System.out.println("LSA is from " + recv.getId());
+                // todo may use the formula given in class to check which one is newer
+                if (cur.getSeqno() > workdb.seqno) {
                     for(int direct_neigh: Config.Established_Connect.keySet()){
-                        if(direct_neigh != recv.getId()) {
-//                            System.out.println("passing to neighbors: "+direct_neigh);
-                            Packet lsapack = new Packet(Config.ROUTER_ID, "LSA_MESSAGE", Config.Neighbors_table.get(direct_neigh).Dest, cur);
+                        // don't send to source and initial router
+                        if((direct_neigh != recv.getId())&&(direct_neigh != id) ) {
+                            Packet lsapack = new Packet(Config.ROUTER_ID, lsa_type, Config.Neighbors_table.get(direct_neigh).Dest, cur);
                             lsapack.setLSAMessage(cur);
                             sLSRP.sendPacket(lsapack);
                         }
                     }
-//                    System.out.println(workdb.seqno + " " + cur.getSeqno());
-//                    System.out.println("&&&&&&&&&&&&&&");
-                    if(workdb.seqno < cur.getSeqno()){
-                        //update lsa database
-                        workdb.seqno = cur.getSeqno();
-                        sLSRP.lsadb.put(id, workdb);
 
-                        //update linkstates
-                        UpdateLinks(cur);
-                    }
+                    //update lsa database
+                    workdb.seqno = cur.getSeqno();
+                    sLSRP.lsadb.put(id, workdb);
+
+                    //update linkstates
+                    UpdateLinks(cur);
+
 
                 }else{
                     // ignore the message
@@ -60,6 +58,15 @@ public class LSADatabaseThread implements Runnable {
                 LSADatabase newentry = new LSADatabase();
                 newentry.fromLSAMessage(cur);
                 sLSRP.lsadb.put(Integer.parseInt(cur.getLinkID()), newentry);
+
+                for(int direct_neigh: Config.Established_Connect.keySet()){
+                    // don't send to source and initial router
+                    if((direct_neigh != recv.getId())&&(direct_neigh != id) ) {
+                        Packet lsapack = new Packet(Config.ROUTER_ID, lsa_type, Config.Neighbors_table.get(direct_neigh).Dest, cur);
+                        lsapack.setLSAMessage(cur);
+                        sLSRP.sendPacket(lsapack);
+                    }
+                }
 
                 // update linkstates
                 UpdateLinks(cur);
@@ -97,14 +104,16 @@ public class LSADatabaseThread implements Runnable {
             int start = sLSRP.router_nodes.get(worklink.source);
             int end = sLSRP.router_nodes.get(worklink.destination);
             t.addEdge(start, end, worklink.cost);
-            t.addEdge(end, start,worklink.cost);
+//            t.addEdge(end, start,worklink.cost);
         }
 
-        System.out.println("edge no: "+t.getEdgeCounts()+" should be "+sLSRP.edgeno+" whether converge "+converge);
-        if(t.getEdgeCounts() == sLSRP.edgeno && converge == false){
+//        System.out.println("edge no: "+t.getEdgeCounts()+" should be "+sLSRP.edgeno+" whether converge "+sLSRP.converge);
+        if((t.getEdgeCounts() == sLSRP.edgeno && sLSRP.converge == false)||(printmap)){
             System.out.println("Converge");
             t.print();
-            converge = true;
+            sLSRP.converge = true;
+            long time = System.currentTimeMillis() - sLSRP.starttime;
+            System.out.println("*** in "+time+" million seconds ***");
         }
         synchronized (sLSRP.graph){
             sLSRP.graph = t;
@@ -120,29 +129,50 @@ public class LSADatabaseThread implements Runnable {
     }
 
     private void UpdateLinks(LSAMessage cur){
+        String lsatype = cur.getType();
         boolean update_flag = false;
-        ArrayList<Links> updated = cur.getLinkArray();
-        for(int i=0; i<updated.size(); i++){
-            String tmp_key = updated.get(i).source + "_" + updated.get(i).destination;
-            Links orign = sLSRP.links.get(tmp_key);
-            // no matter it existed or not, will update the links
-            if(orign != null){
-                if(updated.get(i).cost == Double.POSITIVE_INFINITY){
-                    // The link is down, should be removed from established links
-                    sLSRP.links.remove(tmp_key);
+        if(lsatype.equals("FAIL_LSA")){
+            String faillink = cur.getFaillink();
+            String tmp[] = faillink.split("_");
+            String rev_link = tmp[1]+"_"+tmp[0];
+            synchronized (sLSRP.links){
+                if(sLSRP.links.containsKey(faillink)){
+                    System.out.println("remove the fail link "+ faillink);
+                    sLSRP.links.remove(faillink);
+                    System.out.println("remove the reverse fail link "+ rev_link);
+                    sLSRP.links.remove(rev_link);
                     update_flag = true;
-                }else if (updated.get(i).cost != orign.cost){
-                    //if the cost does not change, links does not need to be updated
+                }
+            }
+
+            printmap = true;
+
+
+        }else if(lsatype.equals("LSA")){
+
+            ArrayList<Links> updated = cur.getLinkArray();
+            for(int i=0; i<updated.size(); i++){
+                String tmp_key = updated.get(i).source + "_" + updated.get(i).destination;
+                Links orign = sLSRP.links.get(tmp_key);
+                // no matter it existed or not, will update the links
+                if(orign != null){
+                    if(updated.get(i).cost == Double.POSITIVE_INFINITY){
+                        // The link is down, should be removed from established links
+                        sLSRP.links.remove(tmp_key);
+                        update_flag = true;
+                    }else if (updated.get(i).cost != orign.cost){
+                        //if the cost does not change, links does not need to be updated
+                        sLSRP.links.put(tmp_key, updated.get(i));
+                        update_flag = true;
+                    }
+                }else{
                     sLSRP.links.put(tmp_key, updated.get(i));
                     update_flag = true;
                 }
-            }else{
-                sLSRP.links.put(tmp_key, updated.get(i));
-                update_flag = true;
+
             }
 
         }
-
         if(update_flag){
             //recalculate routing table
             //if no updates, the routing table does not need to be recalculated

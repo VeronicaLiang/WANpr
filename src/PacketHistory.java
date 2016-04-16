@@ -28,7 +28,7 @@ public class PacketHistory {
         this.ack = val;
     }
 
-    public void increasCounts(){
+    public void increaseCounts(){
         this.counts++;
     }
 
