@@ -32,14 +32,21 @@ public class ServerThread implements Runnable {
                     Packet recv = (Packet) inputstream.readObject();
                     String packet_type = recv.getType();
 
-                    double dropval = Math.random();
-//                    System.out.println("Receive Packet "+packet_type+"  "+dropval);
-                    if(dropval < Config.DROP_RATE){
-//                        System.out.println("Packet is dropped due to the congestion ");
-                        inputstream.close();
-                        clntSock.close();
-                        continue;
-                    }
+//                    double dropval = Math.random();
+////                    System.out.println("Receive Packet "+packet_type+"  "+dropval);
+//                    if(dropval < Config.DROP_RATE){
+////                        System.out.println("Packet is dropped due to the congestion ");
+//                        inputstream.close();
+//                        clntSock.close();
+//                        continue;
+//                    }
+//
+//                    double errorval = Math.random();
+//                    if(errorval < Config.ERROR_RATE){
+//                        inputstream.close();
+//                        clntSock.close();
+//                        continue;
+//                    }
 //                    System.out.println("Receive a Packet with seqno: "+recv.getSeqno() +" with type of "+recv.getType());
                     int ack_seqno = recv.getSeqno()+1;
 //
@@ -92,12 +99,12 @@ public class ServerThread implements Runnable {
                             clntSock.close();
                             break;
                         case "LSA_MESSAGE":
-                            System.out.println("*******");
-                            System.out.println("Receive LSA Message from router "+recv.getId()+" "+Config.Neighbors_table.get(recv.getId()).Dest );
-                            System.out.println("ACK_SEQ_NO is : "+ack_seqno);
-                            System.out.println("*******");
                             LSAMessage receivelsa = recv.getLSA();
                             int lsaackno = receivelsa.getSeqno() + 1;
+//                            System.out.println("*******");
+//                            System.out.println("Receive LSA Message from router "+recv.getId()+" "+Config.Neighbors_table.get(recv.getId()).Dest );
+//                            System.out.println("ACK_SEQ_NO is : "+lsaackno);
+//                            System.out.println("*******");
                             Packet lsa_ack = new Packet(Config.ROUTER_ID, "ACK_LSA", Config.Neighbors_table.get(recv.getId()).Dest,lsaackno);
                             sLSRP.sendPacket(lsa_ack);
                             Runnable lsadb = new LSADatabaseThread(recv);
@@ -110,23 +117,24 @@ public class ServerThread implements Runnable {
                             clntSock.close();
                             break;
                         case "ACK_RTT":
-//                            System.out.println("Received the ACK_RTT message");
                             int ackrttno = recv.getSeqno() - 1;
+//                            System.out.println("Received the ACK_RTT message from Router_"+ recv.getId()+" with seqno "+recv.getSeqno());
 //                            System.out.println(recv.getSeqno() + " \t " + ackrttno);
 
-                            PacketHistory rttcheckone = RTTAnalysis.senthistory.get(ackrttno);
+                            PacketHistory rttcheckone = RTTAnalysis.rttsenthistory.get(ackrttno);
                             if(rttcheckone != null){
-                                int rttcheckone_destid = rttcheckone.getDest_id();
-                                synchronized (RTTAnalysis.senthistory){
-                                    RTTAnalysis.senthistory.get(ackrttno).setAck(true);
+                                synchronized (RTTAnalysis.rttsenthistory){
+                                    RTTAnalysis.rttsenthistory.get(ackrttno).setAck(true);
                                 }
                                 long curtime = System.currentTimeMillis();
                                 long time = curtime - rttcheckone.getSendtime();
-                                System.out.println("ACK_RTT for seq_no "+ ackrttno +" received in "+time+" million seconds");
+//                                System.out.println("ACK_RTT for seq_no "+ ackrttno +" received in "+time+" million seconds");
+                                String updatekey = Config.ROUTER_ID+"_"+rttcheckone.getDest_id();
                                 synchronized (sLSRP.links){
-                                    double prev_cost = sLSRP.links.get(Config.ROUTER_ID+"_"+rttcheckone.getDest_id()).cost;
-                                    sLSRP.links.get(Config.ROUTER_ID+"_"+rttcheckone.getDest_id()).cost = (prev_cost + time) / 2;
-                                    sLSRP.links.get(Config.ROUTER_ID+"_"+rttcheckone.getDest_id()).active = true;
+                                    double prev_cost = sLSRP.links.get(updatekey).cost;
+                                    sLSRP.links.get(updatekey).cost = (prev_cost + time) / 2;
+                                    sLSRP.links.get(updatekey).active = true;
+                                    sLSRP.links.get(updatekey).last_update = System.currentTimeMillis();
                                 }
                             }
                             clntSock.close();
@@ -139,7 +147,7 @@ public class ServerThread implements Runnable {
                             break;
                         case "ACK_LSA":
                             int acklsano = recv.getSeqno() - 1;
-                            System.out.println("Server Receive ACK_LSA for "+acklsano + "!!!!!");
+//                            System.out.println("Server Receive ACK_LSA for "+acklsano + "!!!!!");
                             PacketHistory lsacheckone = LSAThread.lsasenthistory.get(acklsano);
                             if(lsacheckone != null){
                                 synchronized (LSAThread.lsasenthistory){

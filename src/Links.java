@@ -9,12 +9,14 @@ public class Links implements Serializable{
     public int destination;
     public double cost = 0;
     public boolean active;
+    public long last_update;
     private int non_active_count = 0;
 
     public Links(int source, int destination, double cost){
         this.source = source;
         this.destination = destination;
         this.cost = cost;
+        this.last_update = System.currentTimeMillis();
     }
 
     public void IncreaseNonActiveCount(){

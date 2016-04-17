@@ -22,6 +22,7 @@ public class Config {
     public static long ALIVE_TIMER = 5000;
     public static int SERV_PORT = 5574;
     public static double DROP_RATE = 0.1;
+    public static double ERROR_RATE = 0.1;
     public static Hashtable<Integer, Neighbors> Neighbors_table = new Hashtable<>(); // key is the Router ID
     // the key is the directed neighbor, value is the cost. At beginning, the cost is set to 0
     public static Hashtable<Integer, Integer> Established_Connect = new Hashtable<>(); // key is Router ID

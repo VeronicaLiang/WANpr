@@ -21,7 +21,7 @@ public class AliveMessageThread implements Runnable {
                 }
                 boolean continue_flag = false;
                 if(alivesenthistory.size()>0) {
-                    printSentHistory();
+//                    printSentHistory();
                     continue_flag = checkHistory();
                 }
                 if(!continue_flag) {
@@ -47,15 +47,15 @@ public class AliveMessageThread implements Runnable {
 
     private boolean checkHistory(){
         boolean resend_flag = false;
+        ArrayList<Integer> remove_keys = new ArrayList<>();
         for(int seq_key: alivesenthistory.keySet()){
             PacketHistory check = alivesenthistory.get(seq_key);
             String linkkey = Config.ROUTER_ID + "_" + check.getDest_id();
             if(check.getAck()){
                 //remove ones that have acked.
 //                System.out.println("remove ACKED element");
-                synchronized (alivesenthistory) {
-                    alivesenthistory.remove(seq_key);
-                }
+                remove_keys.add(seq_key);
+
             }else{
                 if(check.getCounts()>=3){
                     // remove the link
@@ -74,9 +74,8 @@ public class AliveMessageThread implements Runnable {
                     // TODO the sendFailure LSA function
 //                    System.out.println("the link is dead "+ linkkey + " will send out LSA FAILURE to neighbors from "+Config.ROUTER_ID);
                     LSAThread.sendFailureLSA(linkkey);
-                    synchronized (alivesenthistory) {
-                        alivesenthistory.remove(seq_key);
-                    }
+
+                    remove_keys.add(seq_key);
                 }else{
                     // update links use RTT to update the cost, don't use Alive Message
 //                    synchronized (sLSRP.links){
@@ -91,6 +90,12 @@ public class AliveMessageThread implements Runnable {
                     sLSRP.sendPacket(check.getPacket());
                     resend_flag = true;
                 }
+            }
+        }
+
+        for(int i=0; i<remove_keys.size();i++){
+            synchronized (alivesenthistory){
+                alivesenthistory.remove(remove_keys.get(i));
             }
         }
         return resend_flag;

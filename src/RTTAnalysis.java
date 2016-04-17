@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
 import java.util.Hashtable;
 
 /**
@@ -9,7 +10,7 @@ import java.util.Hashtable;
 //todo round-of-robbin fashion
 public class RTTAnalysis implements Runnable{
 
-    public static Hashtable<Integer, PacketHistory> senthistory = new Hashtable<>();
+    public static Hashtable<Integer, PacketHistory> rttsenthistory = new Hashtable<>();
     private int seqno = 0;
 
     @Override
@@ -24,23 +25,20 @@ public class RTTAnalysis implements Runnable{
                 if(!Config.Established_Connect.containsKey(dir_neighbor)){
                     continue;
                 }
-                boolean resendflag = false;
-                int cur_size = senthistory.size();
-                if(cur_size>0){
+
+                if(rttsenthistory.size()>0){
 //                    printSentHistory();
-                    resendflag = checkHistory();
+                    checkHistory();
                 }
-                if(!resendflag){
-//                    System.out.println("Sending RTT Analysis Message...");
-//                    System.out.println("Sequence no is: " + seqno);
-                    Packet rtt = new Packet(Config.ROUTER_ID, "RTT_ANALYSIS",Config.Neighbors_table.get(dir_neighbor).Dest, seqno);
-//                    System.out.println(rtt.getSeqno());
-                    sLSRP.sendPacket(rtt);
-                    synchronized (senthistory) {
-                        senthistory.put(seqno, new PacketHistory(rtt, dir_neighbor));
-                    }
-                    seqno++;
+//
+//                System.out.println("Sending RTT Analysis Message...");
+//                System.out.println("Sequence no is: " + seqno);
+                Packet rtt = new Packet(Config.ROUTER_ID, "RTT_ANALYSIS",Config.Neighbors_table.get(dir_neighbor).Dest, seqno);
+                sLSRP.sendPacket(rtt);
+                synchronized (rttsenthistory) {
+                    rttsenthistory.put(seqno, new PacketHistory(rtt, dir_neighbor));
                 }
+                seqno++;
 
                 // every time only send to one neighbor
                 try {
@@ -52,49 +50,51 @@ public class RTTAnalysis implements Runnable{
         }
     }
 
-    public boolean checkHistory(){
-        boolean resend_flag = false;
-        for(int seq_key: senthistory.keySet()){
-            PacketHistory check = senthistory.get(seq_key);
+    public void checkHistory(){
+        // Currently, if the rtt is not ACKED for three times, then the cost is set to be the inter.max
+        // It won't resend any packets.
+        ArrayList<Integer> remove_keys = new ArrayList<>();
+        for(int seq_key: rttsenthistory.keySet()){
+            PacketHistory check = rttsenthistory.get(seq_key);
             String linkkey = Config.ROUTER_ID + "_" + check.getDest_id();
 //            String re_linkkey = check.getDest_id() + "_" + Config.ROUTER_ID;
             if(check.getAck()){
                 //remove ones that have acked.
-//                System.out.println("remove ACKED element");
-                synchronized (senthistory){
-                    senthistory.remove(seq_key);
-                }
-
+                remove_keys.add(seq_key);
             }else{
-                synchronized (sLSRP.links) {
+                if(check.getCounts() > 3){
                     if (sLSRP.links.containsKey(linkkey)) {
-                        sLSRP.links.get(linkkey).cost = Integer.MAX_VALUE;
+                        if(check.getSendtime() < sLSRP.links.get(linkkey).last_update){
+                            // has been updated
+                            // the packet may be lost
+//                            System.out.println("Remove the send history entry "+seq_key+" without update the link cost to max");
+                        }else{
+                            // after faced 3 times out of timer, there was no update for the link.
+                            synchronized (sLSRP.links) {
+                                sLSRP.links.get(linkkey).cost = Integer.MAX_VALUE;
+                            }
+                        }
                     }
-                }
-                Packet resendp = check.getPacket();
-//                System.out.println("Resend the packet "+this.seqno);
-                resendp.setSeqno(this.seqno);
-                sLSRP.sendPacket(resendp);
-                PacketHistory resendrecord = new PacketHistory(resendp,check.getDest_id());
-                synchronized (senthistory) {
-                    senthistory.put(this.seqno, resendrecord);
-                }
-                this.seqno++;
-                resend_flag = true;
-                synchronized (senthistory){
-                    senthistory.remove(seq_key);
+                    remove_keys.add(seq_key);
+                }else{
+                    synchronized (rttsenthistory){
+                        rttsenthistory.get(seq_key).increaseCounts();
+                    }
                 }
             }
 
         }
-        return resend_flag;
-
+        for(int i=0; i<remove_keys.size();i++){
+            synchronized (rttsenthistory){
+                rttsenthistory.remove(remove_keys.get(i));
+            }
+        }
     }
 
     public void printSentHistory(){
         System.out.println("seq_no\tACK\tCounts\tDest_Router_ID");
-        for(int seq_no_key: senthistory.keySet()){
-            System.out.println(seq_no_key+"\t"+senthistory.get(seq_no_key).getAck()+"\t"+senthistory.get(seq_no_key).getCounts()+"\t"+senthistory.get(seq_no_key).getDest_id());
+        for(int seq_no_key: rttsenthistory.keySet()){
+            System.out.println(seq_no_key+"\t"+rttsenthistory.get(seq_no_key).getAck()+"\t"+rttsenthistory.get(seq_no_key).getCounts()+"\t"+rttsenthistory.get(seq_no_key).getDest_id());
         }
     }
 }

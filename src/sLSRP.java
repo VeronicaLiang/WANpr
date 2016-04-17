@@ -38,7 +38,9 @@ public class sLSRP {
             System.out.println("Please select action:");
             System.out.println("1: Drop");
             System.out.println("2: Recover");
-            System.out.println("4: Print Out the Shortest Path Result");
+            System.out.println("4: Print Out the current Topology");
+            System.out.println("5: Print the current routing table");
+            System.out.println("6: Print current LSA database");
             Scanner sc = new Scanner(System.in);
             int choice2 = Integer.parseInt(sc.nextLine());
             switch (choice2) {
@@ -56,7 +58,15 @@ public class sLSRP {
                 case 4:
                     sLSRP.graph.print();
                     break;
-
+                case 5:
+                    System.out.println(sLSRP.routing_table);
+                    break;
+                case 6:
+                    System.out.println("Link ID \t Adv. Router Id\t Link Counts\t Seq #\t Time Created");
+                    for(int i:sLSRP.lsadb.keySet()){
+                        LSADatabase tmp = sLSRP.lsadb.get(i);
+                        System.out.println(tmp.linkid+"\t"+tmp.adv_router+"\t"+tmp.linkcounts+"\t"+tmp.seqno+"\t"+tmp.createdtime);
+                    }
             }
         }
 
@@ -85,17 +95,17 @@ public class sLSRP {
         Runnable connection = new NeighborRequThread();
         new Thread(connection).start();
 
-        // Start the RTT Analysis Thread
-//        RTTAnalysis rtt = new RTTAnalysis();
-//        new Thread(rtt).start();
-
         // Start the Alive Message Thread
         AliveMessageThread alive = new AliveMessageThread();
         new Thread(alive).start();
 
+        // Start the RTT Analysis Thread
+        RTTAnalysis rtt = new RTTAnalysis();
+        new Thread(rtt).start();
+
         // Start the LSA Message Thread
-//        LSAThread lsa = new LSAThread();
-//        new Thread(lsa).start();
+        LSAThread lsa = new LSAThread();
+        new Thread(lsa).start();
 
         User_Interface();
 

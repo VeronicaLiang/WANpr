@@ -22,6 +22,11 @@ public class LSADatabaseThread implements Runnable {
         long now = System.currentTimeMillis();
 
         long check_age = now-cur.getTime_created();
+
+        //every time receive the LSA message, also remove the information that older than age limitation
+//        if(sLSRP.lsadb.size()>0) {
+//            checkLSAdb(now);
+//        }
         if(check_age > Config.AGE_LIMITATION){
             //if age is larger than the limitation, too old, ignore
             System.out.println("Printing inside the LSADatabaseThread, the message is too old");
@@ -33,7 +38,11 @@ public class LSADatabaseThread implements Runnable {
             if(workdb != null) {
                 // todo may use the formula given in class to check which one is newer
                 if (cur.getSeqno() > workdb.seqno) {
-                    for(int direct_neigh: Config.Established_Connect.keySet()){
+                    for(int direct_neigh: Config.Neighbors_table.keySet()){
+                        if(!Config.Established_Connect.containsKey(direct_neigh)){
+                            continue;
+                        }
+
                         // don't send to source and initial router
                         if((direct_neigh != recv.getId())&&(direct_neigh != id) ) {
                             Packet lsapack = new Packet(Config.ROUTER_ID, lsa_type, Config.Neighbors_table.get(direct_neigh).Dest, cur);
@@ -149,27 +158,24 @@ public class LSADatabaseThread implements Runnable {
 
 
         }else if(lsatype.equals("LSA")){
-
             ArrayList<Links> updated = cur.getLinkArray();
             for(int i=0; i<updated.size(); i++){
                 String tmp_key = updated.get(i).source + "_" + updated.get(i).destination;
                 Links orign = sLSRP.links.get(tmp_key);
                 // no matter it existed or not, will update the links
                 if(orign != null){
-                    if(updated.get(i).cost == Double.POSITIVE_INFINITY){
-                        // The link is down, should be removed from established links
-                        sLSRP.links.remove(tmp_key);
-                        update_flag = true;
-                    }else if (updated.get(i).cost != orign.cost){
-                        //if the cost does not change, links does not need to be updated
-                        sLSRP.links.put(tmp_key, updated.get(i));
+                    if(orign.cost != updated.get(i).cost){
+                        synchronized (sLSRP.links){
+                            sLSRP.links.put(tmp_key, updated.get(i));
+                        }
                         update_flag = true;
                     }
-                }else{
-                    sLSRP.links.put(tmp_key, updated.get(i));
+                }else {
+                    synchronized (sLSRP.links) {
+                        sLSRP.links.put(tmp_key, updated.get(i));
+                    }
                     update_flag = true;
                 }
-
             }
 
         }
@@ -181,4 +187,21 @@ public class LSADatabaseThread implements Runnable {
             SetupGraph(nodecount);
         }
     }
+
+    public void checkLSAdb(long now){
+        ArrayList<Integer> outdated = new ArrayList<>();
+        for (int i = 0 ; i < sLSRP.lsadb.size(); i++){
+            long age =  now - sLSRP.lsadb.get(i).createdtime;
+            if(age > Config.AGE_LIMITATION){
+                outdated.add(i);
+            }
+        }
+
+        synchronized (sLSRP.lsadb){
+            for(int j = 0; j<outdated.size(); j++) {
+                sLSRP.lsadb.remove(j);
+            }
+        }
+    }
+
 }
