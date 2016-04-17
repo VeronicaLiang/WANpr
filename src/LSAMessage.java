@@ -63,4 +63,6 @@ public class LSAMessage implements Serializable{
 
     public int getAdvertising_Id(){return this.Advertising_Id;}
 
+    public int getLinkCount(){return this.LinkCount;}
+
 }

@@ -52,14 +52,19 @@ public class LSAThread implements Runnable{
     public static LSAMessage GenerateLSA(int adver_id){
         LSAMessage lsa = new LSAMessage(adver_id);
         String key_set = Config.ROUTER_ID+"_";
+//        System.out.println(" the start router is "+key_set);
         int link_count = 0;
         for (String linkkey: sLSRP.links.keySet()){
+//            System.out.println("linkkey from sLSRPlinks "+ linkkey);
             if(linkkey.contains(key_set)){
+//                System.out.println("Contains");
                 lsa.AddLinks(sLSRP.links.get(linkkey));
-                link_count +=1;
+                link_count ++;
             }
         }
+//        System.out.println(link_count);
         lsa.setLinkCount(link_count);
+//        System.out.println(lsa.getLinkCount() + "~~~~~~~~~~~~~~~~~");
         return lsa;
     }
 

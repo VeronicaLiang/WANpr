@@ -17,6 +17,7 @@ public class LSADatabase {
         this.linkcounts = a.getLinkArray().size();
         this.seqno = a.getSeqno();
         this.createdtime = a.getTime_created();
+        this.linkcounts = a.getLinkCount();
     }
 
     public void changeReachable (boolean val ){

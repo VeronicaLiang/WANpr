@@ -18,6 +18,7 @@ public class LSADatabaseThread implements Runnable {
 
     public void run(){
         LSAMessage cur = recv.getLSA();
+//        System.out.println("from received packet "+ cur.getLinkID() + " has "+cur.getLinkCount()+ " link counts");
 //        int initialid = cur.getAdvertising_Id();
         long now = System.currentTimeMillis();
 
@@ -52,7 +53,8 @@ public class LSADatabaseThread implements Runnable {
                     }
 
                     //update lsa database
-                    workdb.seqno = cur.getSeqno();
+                    workdb.fromLSAMessage(cur);
+//                    System.out.println("Router Id "+ workdb.linkid + " has "+workdb.linkcounts+" link counts");
                     sLSRP.lsadb.put(id, workdb);
 
                     //update linkstates
