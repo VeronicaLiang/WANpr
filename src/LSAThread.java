@@ -7,6 +7,7 @@ import java.util.Hashtable;
 public class LSAThread implements Runnable{
     public static int seq_no = 0;
     public static Hashtable<Integer, PacketHistory> lsasenthistory = new Hashtable<>();
+    public static Hashtable<Integer, PacketHistory> faillsasenthistory = new Hashtable<>();
 
     public void run (){
         try {
@@ -64,7 +65,6 @@ public class LSAThread implements Runnable{
         }
 //        System.out.println(link_count);
         lsa.setLinkCount(link_count);
-//        System.out.println(lsa.getLinkCount() + "~~~~~~~~~~~~~~~~~");
         return lsa;
     }
 
@@ -75,7 +75,7 @@ public class LSAThread implements Runnable{
         for (String linkkey: sLSRP.links.keySet()){
             if(linkkey.contains(key_set)){
                 lsa.AddLinks(sLSRP.links.get(linkkey));
-                link_count +=1;
+                link_count ++;
             }
         }
         lsa.setLinkCount(link_count);
@@ -83,18 +83,47 @@ public class LSAThread implements Runnable{
     }
 
     public static void sendFailureLSA(String passlinkkey){
+        LSAMessage failm = GenerateFailLSA(Config.ROUTER_ID, passlinkkey);
         for(int direct_neigh: Config.Established_Connect.keySet()){
-            LSAMessage failm = GenerateFailLSA(Config.ROUTER_ID, passlinkkey);
             failm.setSeqno(seq_no);
-            Packet lsapack = new Packet(Config.ROUTER_ID, "FAILURE_LSA", Config.Neighbors_table.get(direct_neigh).Dest, failm);
-            lsapack.setLSAMessage(failm);
-//            synchronized (seq_no) {
-                seq_no++;
-//            }
-            sLSRP.sendPacket(lsapack);
+            Packet faillsapack = new Packet(Config.ROUTER_ID, "FAILURE_LSA", Config.Neighbors_table.get(direct_neigh).Dest, failm);
+            faillsapack.setLSAMessage(failm);
+            synchronized (faillsasenthistory) {
+                faillsasenthistory.put(seq_no, new PacketHistory(faillsapack, direct_neigh) );
+            }
+//          synchronized (seq_no) {
+            LSADatabaseThread.fail_time = System.currentTimeMillis();
+            seq_no++;
+//          }
+            sLSRP.sendPacket(faillsapack);
         }
-
+        // wait for twice time out
+        int timeoutcount = 0;
+        while(faillsasenthistory.size()>0 && timeoutcount<2){
+            ArrayList<Integer> acked = new ArrayList<>();
+            for(int i : faillsasenthistory.keySet()){
+                PacketHistory check = faillsasenthistory.get(i);
+                if(check.getAck()){
+                    acked.add(i);
+                }else{
+                    Packet resend = check.getPacket();
+                    sLSRP.sendPacket(resend);
+                }
+            }
+            synchronized (faillsasenthistory){
+                for(int j=0;j<acked.size();j++){
+                    faillsasenthistory.remove(acked.get(j));
+                }
+            }
+            timeoutcount++;
+            try {
+                Thread.sleep(5000);
+            }catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
+
 
     private boolean checkHistory(){
         boolean resend_flag = false;

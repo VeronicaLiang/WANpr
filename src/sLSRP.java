@@ -59,6 +59,11 @@ public class sLSRP {
                     sLSRP.graph.print();
                     break;
                 case 5:
+                    int source_id = sLSRP.router_nodes.get(Config.ROUTER_ID);
+                    int [] pred = Dijkstra.dijkstra (sLSRP.graph, source_id);
+                    for (int n=0; n<sLSRP.graph.size(); n++) {
+                        Dijkstra.printPath (sLSRP.graph, pred, source_id, n);
+                    }
                     System.out.println(sLSRP.routing_table);
                     break;
                 case 6:
@@ -67,6 +72,8 @@ public class sLSRP {
                         LSADatabase tmp = sLSRP.lsadb.get(i);
                         System.out.println(tmp.linkid+"\t"+tmp.adv_router+"\t"+tmp.linkcounts+"\t"+tmp.seqno+"\t"+tmp.createdtime);
                     }
+
+
             }
         }
 

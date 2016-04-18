@@ -53,8 +53,6 @@ public class ServerThread implements Runnable {
                     switch (packet_type) {
                         case "NEIGHBOR_REQUEST":
 //                          System.out.println("NEIGHBOR REQUEST RECEIVED");
-//                            Runnable ser = new NeighborRequACKThread(recv);
-//                            new Thread(ser).start();
                             int request_id = recv.getId();
                             Neighbors check = Config.Neighbors_table.get(request_id);
                             if(check != null){
@@ -140,7 +138,12 @@ public class ServerThread implements Runnable {
                             clntSock.close();
                             break;
                         case "FAILURE_LSA":
+                            LSAMessage receivefaillsa = recv.getLSA();
+                            int ackfaillsa = receivefaillsa.getSeqno() + 1;
+                            PacketHistory faillsacheckone = LSAThread.faillsasenthistory.get(ackfaillsa);
                             System.out.println("Receive the LSA Failure Message from "+ recv.getId());
+                            Packet faillsa_ack = new Packet(Config.ROUTER_ID, "ACK_FAIL_LSA", Config.Neighbors_table.get(recv.getId()).Dest,ackfaillsa);
+                            sLSRP.sendPacket(faillsa_ack);
                             Runnable faillsadb = new LSADatabaseThread(recv);
                             new Thread(faillsadb).start();
                             clntSock.close();
@@ -154,6 +157,17 @@ public class ServerThread implements Runnable {
                                     LSAThread.lsasenthistory.get(acklsano).setAck(true);
                                 }
                             }
+                            break;
+                        case "ACK_FAIL_LSA":
+                            int ackfaillsano = recv.getSeqno() - 1;
+                            System.out.println("Receive the ACK for Fail LSA for seqno "+ ackfaillsano);
+                            PacketHistory faillsacheck = LSAThread.faillsasenthistory.get(ackfaillsano);
+                            if(faillsacheck != null){
+                                synchronized (LSAThread.faillsasenthistory){
+                                    LSAThread.faillsasenthistory.get(ackfaillsano).setAck(true);
+                                }
+                            }
+                            break;
                     }
                     inputstream.close();
                 }catch (UnknownHostException ex) {

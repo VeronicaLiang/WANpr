@@ -23,7 +23,7 @@ public class Packet implements Serializable{
         this.Id = id;
         this.Type = type;
         this.Destination = dest_ip;
-//        this.Seqno = seq;
+        this.Seqno = l.getSeqno();
         this.lsa = l;
     }
 

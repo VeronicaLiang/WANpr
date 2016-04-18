@@ -55,30 +55,4 @@ public class WeightedGraph {
             System.out.println ();
         }
     }
-
-    public static void SetupGraph (String args[]) {
-        final WeightedGraph t = new WeightedGraph (6);
-        //TODO the following part should be built up upon received LSAs.
-        t.setLabel (0, "v0");
-        t.setLabel (1, "v1");
-        t.setLabel (2, "v2");
-        t.setLabel (3, "v3");
-        t.setLabel (4, "v4");
-        t.setLabel (5, "v5");
-        t.addEdge (0,1,2);
-        t.addEdge (0,5,9);
-        t.addEdge (1,2,8);
-        t.addEdge (1,3,15);
-        t.addEdge (1,5,6);
-        t.addEdge (2,3,1);
-        t.addEdge (4,3,3);
-        t.addEdge (4,2,7);
-        t.addEdge (5,4,3);
-        t.print();
-
-        final int [] pred = Dijkstra.dijkstra (t, 0);
-        for (int n=0; n<6; n++) {
-            Dijkstra.printPath (t, pred, 0, n);
-        }
-    }
 }

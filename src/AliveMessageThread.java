@@ -60,30 +60,24 @@ public class AliveMessageThread implements Runnable {
                 if(check.getCounts()>=3){
                     // remove the link
                     synchronized (sLSRP.links){
-//                        System.out.println("remove the failed link "+linkkey+" in router "+Config.ROUTER_ID);
+                        System.out.println("remove the failed link "+linkkey+" in router "+Config.ROUTER_ID);
                         sLSRP.links.remove(linkkey);
                     }
 
                     String tmp[] = linkkey.split("_");
                     synchronized (Config.Established_Connect){
-//                        System.out.println("remove the failed link from establisehd connection");
+                        System.out.println("remove the failed link from establisehd connection with "+ tmp[1]);
                         Config.Established_Connect.remove(tmp[1]);
                     }
 
                     // remove the entry from established connections
                     // TODO the sendFailure LSA function
-//                    System.out.println("the link is dead "+ linkkey + " will send out LSA FAILURE to neighbors from "+Config.ROUTER_ID);
+                    System.out.println("the link is dead "+ linkkey + " will send out LSA FAILURE to neighbors from "+Config.ROUTER_ID);
                     LSAThread.sendFailureLSA(linkkey);
 
                     remove_keys.add(seq_key);
                 }else{
                     // update links use RTT to update the cost, don't use Alive Message
-//                    synchronized (sLSRP.links){
-//                        if(sLSRP.links.containsKey(linkkey)){
-//                            sLSRP.links.get(linkkey).cost = Double.MAX_VALUE;
-//                            sLSRP.links.get(linkkey).active = false;
-//                        }
-//                    }
                     synchronized (alivesenthistory) {
                         alivesenthistory.get(seq_key).increaseCounts();
                     }

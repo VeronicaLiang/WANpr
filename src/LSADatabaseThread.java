@@ -11,39 +11,69 @@ import java.util.concurrent.SynchronousQueue;
 public class LSADatabaseThread implements Runnable {
     private Packet recv;
     private boolean printmap = false;
+    public static long fail_time = -10000;
 
     public LSADatabaseThread (Packet p){
         this.recv = p;
     }
 
     public void run(){
+//        System.out.println("the fail time: "+ fail_time);
         LSAMessage cur = recv.getLSA();
 //        System.out.println("from received packet "+ cur.getLinkID() + " has "+cur.getLinkCount()+ " link counts");
-//        int initialid = cur.getAdvertising_Id();
         long now = System.currentTimeMillis();
 
-        long check_age = now-cur.getTime_created();
+        if((now - fail_time < 10000)&&(!cur.getType().equals("FAIL_LSA"))){
+            // ignore the packet
+            // although ACKed the packet, don't update lsadb
+            System.out.println(" In the status of ignoring all LSA packets ");
+        }else {
+            long check_age = now-cur.getTime_created();
 
-        //every time receive the LSA message, also remove the information that older than age limitation
-//        if(sLSRP.lsadb.size()>0) {
-//            checkLSAdb(now);
-//        }
-        if(check_age > Config.AGE_LIMITATION){
-            //if age is larger than the limitation, too old, ignore
-            System.out.println("Printing inside the LSADatabaseThread, the message is too old");
-            //ignore the packet.
-        }else{
-            int id = Integer.parseInt(cur.getLinkID());
-            LSADatabase workdb = sLSRP.lsadb.get(id);
-            String lsa_type = recv.getType();
-            if(workdb != null) {
-                // todo may use the formula given in class to check which one is newer
-                if (cur.getSeqno() > workdb.seqno) {
-                    for(int direct_neigh: Config.Neighbors_table.keySet()){
-                        if(!Config.Established_Connect.containsKey(direct_neigh)){
-                            continue;
+            if(check_age > Config.AGE_LIMITATION){
+                //if age is larger than the limitation, too old, ignore
+                System.out.println("Printing inside the LSADatabaseThread, the message is too old");
+                //ignore the packet.
+            }else{
+                int id = Integer.parseInt(cur.getLinkID());
+                LSADatabase workdb = sLSRP.lsadb.get(id);
+                String lsa_type = recv.getType();
+                if(workdb != null) {
+                    // todo may use the formula given in class to check which one is newer
+                    if (cur.getSeqno() > workdb.seqno) {
+                        for(int direct_neigh: Config.Neighbors_table.keySet()){
+                            if(!Config.Established_Connect.containsKey(direct_neigh)){
+                                continue;
+                            }
+
+                            // don't send to source and initial router
+                            // todo check whether this is right without sending to initial router
+                            if((direct_neigh != recv.getId())&&(direct_neigh != id) ) {
+                                Packet lsapack = new Packet(Config.ROUTER_ID, lsa_type, Config.Neighbors_table.get(direct_neigh).Dest, cur);
+                                lsapack.setLSAMessage(cur);
+                                sLSRP.sendPacket(lsapack);
+                            }
                         }
 
+                        //update lsa database
+                        workdb.fromLSAMessage(cur);
+//                    System.out.println("Router Id "+ workdb.linkid + " has "+workdb.linkcounts+" link counts");
+                        sLSRP.lsadb.put(id, workdb);
+
+                        //update linkstates
+                        UpdateLinks(cur);
+
+
+                    }else{
+                        // ignore the message
+                    }
+                }else{
+                    // no entry in lsa database for this router, add new one
+                    LSADatabase newentry = new LSADatabase();
+                    newentry.fromLSAMessage(cur);
+                    sLSRP.lsadb.put(Integer.parseInt(cur.getLinkID()), newentry);
+
+                    for(int direct_neigh: Config.Established_Connect.keySet()){
                         // don't send to source and initial router
                         if((direct_neigh != recv.getId())&&(direct_neigh != id) ) {
                             Packet lsapack = new Packet(Config.ROUTER_ID, lsa_type, Config.Neighbors_table.get(direct_neigh).Dest, cur);
@@ -52,40 +82,36 @@ public class LSADatabaseThread implements Runnable {
                         }
                     }
 
-                    //update lsa database
-                    workdb.fromLSAMessage(cur);
-//                    System.out.println("Router Id "+ workdb.linkid + " has "+workdb.linkcounts+" link counts");
-                    sLSRP.lsadb.put(id, workdb);
-
-                    //update linkstates
+                    // update linkstates
                     UpdateLinks(cur);
-
-
-                }else{
-                    // ignore the message
-                }
-            }else{
-                // no entry in lsa database for this router, add new one
-                LSADatabase newentry = new LSADatabase();
-                newentry.fromLSAMessage(cur);
-                sLSRP.lsadb.put(Integer.parseInt(cur.getLinkID()), newentry);
-
-                for(int direct_neigh: Config.Established_Connect.keySet()){
-                    // don't send to source and initial router
-                    if((direct_neigh != recv.getId())&&(direct_neigh != id) ) {
-                        Packet lsapack = new Packet(Config.ROUTER_ID, lsa_type, Config.Neighbors_table.get(direct_neigh).Dest, cur);
-                        lsapack.setLSAMessage(cur);
-                        sLSRP.sendPacket(lsapack);
-                    }
                 }
 
-                // update linkstates
-                UpdateLinks(cur);
+
+
             }
         }
     }
 
     private int CountNodes (){
+        //should count nodes from lsadb
+        ArrayList<Integer> outdated = new ArrayList<>();
+        for(int r: sLSRP.lsadb.keySet()){
+            LSADatabase count_check = sLSRP.lsadb.get(r);
+            if((count_check.createdtime - System.currentTimeMillis()) > Config.AGE_LIMITATION){
+                // the information is outdated
+                outdated.add(r);
+            }else{
+                sLSRP.router_nodes.put(r,0);
+            }
+        }
+
+        for (int m=0; m<outdated.size(); m++){
+            synchronized (sLSRP.lsadb){
+                sLSRP.lsadb.remove(outdated.get(m));
+            }
+        }
+        // the number of node also should come from links
+        // other wise, for say, you have link 1-3, but haven't receive link information from 3
         for(String j: sLSRP.links.keySet()){
             String [] records = j.split("_");
 //            System.out.println(j);
@@ -109,9 +135,10 @@ public class LSADatabaseThread implements Runnable {
         }
 
 
+//        System.out.println(" the router_node hash table: "+ sLSRP.router_nodes);
         for (String j: sLSRP.links.keySet()){
             Links worklink = sLSRP.links.get(j);
-//            System.out.println("Adding Edge: "+ (worklink.source-1)+" -- "+ (worklink.destination-1)+": "+worklink.cost);
+//            System.out.println("Adding Edge: "+ j+ " start from "+(worklink.source)+" -- "+ (worklink.destination)+": "+worklink.cost);
             int start = sLSRP.router_nodes.get(worklink.source);
             int end = sLSRP.router_nodes.get(worklink.destination);
             t.addEdge(start, end, worklink.cost);
@@ -144,14 +171,16 @@ public class LSADatabaseThread implements Runnable {
         boolean update_flag = false;
         if(lsatype.equals("FAIL_LSA")){
             String faillink = cur.getFaillink();
-            String tmp[] = faillink.split("_");
-            String rev_link = tmp[1]+"_"+tmp[0];
+//            fail_time = System.currentTimeMillis();
+            // todo check whether need to remove the reverse link
+//            String tmp[] = faillink.split("_");
+//            String rev_link = tmp[1]+"_"+tmp[0];
             synchronized (sLSRP.links){
                 if(sLSRP.links.containsKey(faillink)){
                     System.out.println("remove the fail link "+ faillink);
                     sLSRP.links.remove(faillink);
-                    System.out.println("remove the reverse fail link "+ rev_link);
-                    sLSRP.links.remove(rev_link);
+//                    System.out.println("remove the reverse fail link "+ rev_link);
+//                    sLSRP.links.remove(rev_link);
                     update_flag = true;
                 }
             }
@@ -205,5 +234,6 @@ public class LSADatabaseThread implements Runnable {
             }
         }
     }
+
 
 }
