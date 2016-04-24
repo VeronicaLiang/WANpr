@@ -24,6 +24,7 @@ public class LSADatabaseThread implements Runnable {
         long now = System.currentTimeMillis();
 
         if((now - fail_time < 10000)&&(!cur.getType().equals("FAIL_LSA"))){
+            //todo keep everything just dont update
             // ignore the packet
             // although ACKed the packet, don't update lsadb
             System.out.println(" In the status of ignoring all LSA packets ");
@@ -39,10 +40,9 @@ public class LSADatabaseThread implements Runnable {
                 LSADatabase workdb = sLSRP.lsadb.get(id);
                 String lsa_type = recv.getType();
                 if(workdb != null) {
-                    // todo may use the formula given in class to check which one is newer
                     if (cur.getSeqno() > workdb.seqno) {
                         for(int direct_neigh: Config.Neighbors_table.keySet()){
-                            if(!Config.Established_Connect.containsKey(direct_neigh)){
+                            if(!sLSRP.Established_Connect.containsKey(direct_neigh)){
                                 continue;
                             }
 
@@ -57,7 +57,6 @@ public class LSADatabaseThread implements Runnable {
 
                         //update lsa database
                         workdb.fromLSAMessage(cur);
-//                    System.out.println("Router Id "+ workdb.linkid + " has "+workdb.linkcounts+" link counts");
                         sLSRP.lsadb.put(id, workdb);
 
                         //update linkstates
@@ -73,7 +72,7 @@ public class LSADatabaseThread implements Runnable {
                     newentry.fromLSAMessage(cur);
                     sLSRP.lsadb.put(Integer.parseInt(cur.getLinkID()), newentry);
 
-                    for(int direct_neigh: Config.Established_Connect.keySet()){
+                    for(int direct_neigh: sLSRP.Established_Connect.keySet()){
                         // don't send to source and initial router
                         if((direct_neigh != recv.getId())&&(direct_neigh != id) ) {
                             Packet lsapack = new Packet(Config.ROUTER_ID, lsa_type, Config.Neighbors_table.get(direct_neigh).Dest, cur);
@@ -146,7 +145,7 @@ public class LSADatabaseThread implements Runnable {
         }
 
 //        System.out.println("edge no: "+t.getEdgeCounts()+" should be "+sLSRP.edgeno+" whether converge "+sLSRP.converge);
-        if((t.getEdgeCounts() == sLSRP.edgeno && sLSRP.converge == false)||(printmap)){
+        if(t.getEdgeCounts() == sLSRP.edgeno && sLSRP.converge == false){
             System.out.println("Converge");
             t.print();
             sLSRP.converge = true;
@@ -185,7 +184,7 @@ public class LSADatabaseThread implements Runnable {
                 }
             }
 
-            printmap = true;
+//            printmap = true;
 
 
         }else if(lsatype.equals("LSA")){

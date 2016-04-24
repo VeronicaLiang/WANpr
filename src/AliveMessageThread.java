@@ -14,8 +14,7 @@ public class AliveMessageThread implements Runnable {
 
             //NOTE: do not add a timer for Alive message. set the Hello_Interval small
             for (int IDs : Config.Neighbors_table.keySet()) {
-//                System.out.println("Shall we send ALIVE to neighbor "+IDs+" ?");
-                if (!Config.Established_Connect.containsKey(IDs)) {
+                if (!sLSRP.Established_Connect.containsKey(IDs)) {
 //                    System.out.println("The Established_Connect does not contain the key "+ IDs);
                     continue;
                 }
@@ -43,6 +42,7 @@ public class AliveMessageThread implements Runnable {
                 }
             }
         }
+        System.out.println("Alive Message Thread Stops");
     }
 
     private boolean checkHistory(){
@@ -65,13 +65,14 @@ public class AliveMessageThread implements Runnable {
                     }
 
                     String tmp[] = linkkey.split("_");
-                    synchronized (Config.Established_Connect){
+//                    System.out.println(sLSRP.Established_Connect.size());
+                    synchronized (sLSRP.Established_Connect){
                         System.out.println("remove the failed link from establisehd connection with "+ tmp[1]);
-                        Config.Established_Connect.remove(tmp[1]);
+                        sLSRP.Established_Connect.remove(Integer.parseInt(tmp[1]));
                     }
+//                    System.out.println(sLSRP.Established_Connect.size());
 
                     // remove the entry from established connections
-                    // TODO the sendFailure LSA function
                     System.out.println("the link is dead "+ linkkey + " will send out LSA FAILURE to neighbors from "+Config.ROUTER_ID);
                     LSAThread.sendFailureLSA(linkkey);
 

@@ -6,6 +6,8 @@ import java.util.List;
  * LSA Message .
  */
 public class LSAMessage implements Serializable{
+    private static final long serialVersionUID = 5950169519310163575L;
+
     private int age;
     private String LinkID;
     private ArrayList<Links> adv_links = new ArrayList<>();

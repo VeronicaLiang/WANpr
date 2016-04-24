@@ -5,12 +5,12 @@ import java.io.Serializable;
 public class Packet implements Serializable{
     private static final long serialVersionUID = 5950169519310163575L;
     private String Type;
-    private Object Data;
     private LSAMessage lsa;
     private String Destination;
     private int Id; //source Router's id
     private int Seqno;
     private Integer crc32Code;
+    private DataMessage Data;
 
     public Packet (int id, String type, String dest_ip, int seq){
         this.Id = id;
@@ -25,6 +25,13 @@ public class Packet implements Serializable{
         this.Destination = dest_ip;
         this.Seqno = l.getSeqno();
         this.lsa = l;
+    }
+
+    public Packet (int id, String type, String dest_ip, DataMessage d){
+        this.Id = id;
+        this.Type = type;
+        this.Destination = dest_ip;
+        this.Data = d;
     }
 
     public void setID(int id){
@@ -63,6 +70,10 @@ public class Packet implements Serializable{
 
     public LSAMessage getLSA (){
         return lsa;
+    }
+
+    public DataMessage getFileMessage (){
+        return this.Data;
     }
 
 }

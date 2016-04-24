@@ -10,12 +10,12 @@ public class LSAThread implements Runnable{
     public static Hashtable<Integer, PacketHistory> faillsasenthistory = new Hashtable<>();
 
     public void run (){
-        try {
-            double times = (Config.LSA_INTERVAL/Config.LSA_TIMER);
-            while (!sLSRP.Failure) {
+        while (!sLSRP.Failure) {
+            try {
+                double times = (Config.LSA_INTERVAL/Config.LSA_TIMER);
                 LSAMessage needsend = GenerateLSA(Config.ROUTER_ID);
                 for(int direct_neigh: Config.Neighbors_table.keySet()){
-                    if(!Config.Established_Connect.containsKey(direct_neigh)){
+                    if(!sLSRP.Established_Connect.containsKey(direct_neigh)){
                         continue;
                     }
                     needsend.setSeqno(seq_no);
@@ -43,10 +43,10 @@ public class LSAThread implements Runnable{
                 long sleeptime = Config.LSA_INTERVAL - timercount*Config.LSA_TIMER;
 //                System.out.println("It will wait another "+sleeptime);
                 Thread.sleep(sleeptime);
+            }catch (Exception e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
             }
-        } catch (Exception e1) {
-            // TODO Auto-generated catch block
-            e1.printStackTrace();
         }
     }
 
@@ -84,7 +84,7 @@ public class LSAThread implements Runnable{
 
     public static void sendFailureLSA(String passlinkkey){
         LSAMessage failm = GenerateFailLSA(Config.ROUTER_ID, passlinkkey);
-        for(int direct_neigh: Config.Established_Connect.keySet()){
+        for(int direct_neigh: sLSRP.Established_Connect.keySet()){
             failm.setSeqno(seq_no);
             Packet faillsapack = new Packet(Config.ROUTER_ID, "FAILURE_LSA", Config.Neighbors_table.get(direct_neigh).Dest, failm);
             faillsapack.setLSAMessage(failm);

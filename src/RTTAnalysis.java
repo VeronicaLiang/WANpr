@@ -16,13 +16,9 @@ public class RTTAnalysis implements Runnable{
     @Override
     public void run(){
         while (!sLSRP.Failure) {
-            if(sLSRP.Failure){
-                // under failure state, doing nothing
-                continue;
-            }
 
             for (int dir_neighbor: Config.Neighbors_table.keySet()){
-                if(!Config.Established_Connect.containsKey(dir_neighbor)){
+                if(!sLSRP.Established_Connect.containsKey(dir_neighbor)){
                     continue;
                 }
 

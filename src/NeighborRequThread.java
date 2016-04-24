@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 
 /**
  * Send out Neighbor Request packet, build up connections.
@@ -10,12 +11,16 @@ public class NeighborRequThread implements Runnable {
 
     @Override
     public void run (){
-        boolean flag = true;
-        while(sendflag && !sLSRP.Failure) {
+//        System.out.println("Inside the NEighnor Requ");
+//        System.out.println(sendflag + "\t\t "+sLSRP.Failure);
+//        while(sendflag && !sLSRP.Failure) {
+        while (!sLSRP.Failure){
             for (int IDs : Config.Neighbors_table.keySet()) {
-                if(Config.Established_Connect.containsKey(IDs)){
+                if(sLSRP.Established_Connect.containsKey(IDs)){
+//                    System.out.println("Neighbor "+ IDs + " in Established Connect");
                     continue;
                 }
+
 //                System.out.println(IDs + ": " + Config.Neighbors_table.get(IDs).Dest + " " + Config.Neighbors_table.get(IDs).Port);
                 Packet neighbor_request = new Packet(Config.ROUTER_ID, "NEIGHBOR_REQUEST", Config.Neighbors_table.get(IDs).Dest,seqno);
                 seqno++;
@@ -24,18 +29,14 @@ public class NeighborRequThread implements Runnable {
 
 //            System.out.println("Two size is the same? **** ");
 //            System.out.println(Config.Established_Connect.size() + "\t" + Config.Neighbors_table.size());
-//            if(Config.Established_Connect.size() == Config.Neighbors_table.size()){
-//                flag = false;
-//            }else{
-                System.out.println("waiting for connecting with neighbors");
-                try{
-                    Thread.sleep(10000);
-                }catch (InterruptedException e){
-                    Thread.currentThread();
-                }
-//            }
+
+//            System.out.println("waiting for connecting with neighbors");
+            try{
+                Thread.sleep(10000);
+            }catch (InterruptedException e){
+                Thread.currentThread();
+            }
         }
-
-
+//        System.out.println("Neighbor Request Thread is Finished");
     }
 }

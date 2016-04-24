@@ -1,6 +1,8 @@
 /**
  * Dijkstra algorithm adopted from web.
  */
+import java.util.ArrayList;
+
 public class Dijkstra {
     // Dijkstra's algorithm to find shortest path from s to all other nodes
     public static double [] dist;
@@ -48,6 +50,7 @@ public class Dijkstra {
 
     public static void printPath (WeightedGraph G, int [] pred, int s, int e) {
         final java.util.ArrayList path = new java.util.ArrayList();
+//        final ArrayList path = new ArrayList<>();
 
         if(dist[e] == Double.MAX_VALUE){
             String dest_router_name = G.getLabel(e).toString();
