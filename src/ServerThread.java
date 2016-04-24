@@ -122,8 +122,11 @@ public class ServerThread implements Runnable {
 //                            System.out.println("*******");
                             Packet lsa_ack = new Packet(Config.ROUTER_ID, "ACK_LSA", Config.Neighbors_table.get(recv.getId()).Dest,lsaackno);
                             sLSRP.sendPacket(lsa_ack);
-                            Runnable lsadb = new LSADatabaseThread(recv);
-                            new Thread(lsadb).start();
+                            synchronized (sLSRP.lsadth.queue) {
+                                sLSRP.lsadth.queue.add(recv);
+                            }
+//                            Runnable lsadb = new LSADatabaseThread(recv);
+//                            new Thread(lsadb).start();
                             clntSock.close();
                             break;
                         case "RTT_ANALYSIS":
@@ -161,8 +164,11 @@ public class ServerThread implements Runnable {
 //                            System.out.println("Receive the LSA Failure Message from "+ recv.getId());
                             Packet faillsa_ack = new Packet(Config.ROUTER_ID, "ACK_FAIL_LSA", Config.Neighbors_table.get(recv.getId()).Dest,ackfaillsa);
                             sLSRP.sendPacket(faillsa_ack);
-                            Runnable faillsadb = new LSADatabaseThread(recv);
-                            new Thread(faillsadb).start();
+                            synchronized (sLSRP.lsadth.queue) {
+                                sLSRP.lsadth.queue.add(recv);
+                            }
+//                            Runnable faillsadb = new LSADatabaseThread(recv);
+//                            new Thread(faillsadb).start();
                             clntSock.close();
                             break;
                         case "ACK_LSA":
@@ -205,14 +211,20 @@ public class ServerThread implements Runnable {
 //                                String savefile = sc_tf.nextLine();
                                 String savefile = "new_receive.txt";
                                 sLSRP.application = new EndSystem(Config.ROUTER_ID, sender_id, savefile);
+                                sLSRP.application.seqno = just_recv.getSeqno();
                                 Packet ack_file_init = new Packet(Config.ROUTER_ID, "ACK_FILE_INIT", Config.Neighbors_table.get(sLSRP.routing_table.get(sender_id)).Dest, ack_init);
                                 sLSRP.sendPacket(ack_file_init);
 
                             }else{
-                                System.out.println("Will forward the packet to next node "+ Config.Id_Host.get(sLSRP.routing_table.get(final_dest_id)));
-                                // forward the message to next router
-                                Packet forward = new Packet(Config.ROUTER_ID, "FILE_TRANSFER_INIT", Config.Neighbors_table.get(sLSRP.routing_table.get(final_dest_id)).Dest, just_recv);
-                                sLSRP.sendPacket(forward);
+                                if(just_recv.getMaxHop() > 0){
+                                    System.out.println("Will forward the packet to next node "+ Config.Id_Host.get(sLSRP.routing_table.get(final_dest_id)));
+                                    // forward the message to next router
+                                    just_recv.decreaseMaxHop();
+                                    Packet forward = new Packet(Config.ROUTER_ID, "FILE_TRANSFER_INIT", Config.Neighbors_table.get(sLSRP.routing_table.get(final_dest_id)).Dest, just_recv);
+                                    sLSRP.sendPacket(forward);
+                                }
+                                // if the hop number is 0, then the packet will be dropped.
+
                             }
                             break;
                         case "ACK_FILE_INIT":
@@ -226,8 +238,11 @@ public class ServerThread implements Runnable {
                             }else{
 //                                System.out.println("Will forward the packet to next node "+ Config.Neighbors_table.get(sLSRP.routing_table.get(final_ack_dest_id)).Dest);
                                 // forward the message to next router
-                                Packet forward = new Packet(Config.ROUTER_ID, "ACK_FILE_INIT", Config.Neighbors_table.get(sLSRP.routing_table.get(final_ack_dest_id)).Dest, just_recv_ack);
-                                sLSRP.sendPacket(forward);
+                                if(just_recv_ack.getMaxHop() > 0) {
+                                    just_recv_ack.decreaseMaxHop();
+                                    Packet forward = new Packet(Config.ROUTER_ID, "ACK_FILE_INIT", Config.Neighbors_table.get(sLSRP.routing_table.get(final_ack_dest_id)).Dest, just_recv_ack);
+                                    sLSRP.sendPacket(forward);
+                                }
                             }
                             break;
                         case "FILE_TRANSFER":
@@ -239,9 +254,12 @@ public class ServerThread implements Runnable {
                                 sLSRP.application.receive(filerecv);
                             }else{
                                 // forward to next node
-                                System.out.println("Will forward the FILE_TRANSFER to next node ");
-                                Packet forward = new Packet(Config.ROUTER_ID, "FILE_TRANSFER", Config.Neighbors_table.get(sLSRP.routing_table.get(file_dest_id)).Dest, filerecv);
-                                sLSRP.sendPacket(forward);
+                                if(filerecv.getMaxHop() > 0) {
+                                    System.out.println("Will forward the FILE_TRANSFER to next node ");
+                                    filerecv.decreaseMaxHop();
+                                    Packet forward = new Packet(Config.ROUTER_ID, "FILE_TRANSFER", Config.Neighbors_table.get(sLSRP.routing_table.get(file_dest_id)).Dest, filerecv);
+                                    sLSRP.sendPacket(forward);
+                                }
                             }
                             break;
                         case "ACK_FILE_TRANSFER":
@@ -253,8 +271,11 @@ public class ServerThread implements Runnable {
                                 sLSRP.application.routing_records.put((fileack.getSeqno() - 1), fileack.getCrossed_Path());
 //                                System.out.println("One data packet has been received " + fileack.getCrossed_Path());
                             }else{
-                                Packet fileack_forward = new Packet(Config.ROUTER_ID, "ACK_FILE_TRANSFER", Config.Neighbors_table.get(sLSRP.routing_table.get(fileack_dest)).Dest, fileack);
-                                sLSRP.sendPacket(fileack_forward);
+                                if(fileack.getMaxHop() > 0) {
+                                    fileack.decreaseMaxHop();
+                                    Packet fileack_forward = new Packet(Config.ROUTER_ID, "ACK_FILE_TRANSFER", Config.Neighbors_table.get(sLSRP.routing_table.get(fileack_dest)).Dest, fileack);
+                                    sLSRP.sendPacket(fileack_forward);
+                                }
                             }
                             break;
                         case "FILE_FIN":
@@ -270,8 +291,11 @@ public class ServerThread implements Runnable {
                                 sLSRP.sendPacket(ack_file_init);
                                 System.out.println("file transfer is done");
                             }else{
-                                Packet filefin_forward = new Packet(Config.ROUTER_ID, "FILE_FIN", Config.Neighbors_table.get(sLSRP.routing_table.get(filefin_dest)).Dest, filefin);
-                                sLSRP.sendPacket(filefin_forward);
+                                if(filefin.getMaxHop() > 0) {
+                                    filefin.decreaseMaxHop();
+                                    Packet filefin_forward = new Packet(Config.ROUTER_ID, "FILE_FIN", Config.Neighbors_table.get(sLSRP.routing_table.get(filefin_dest)).Dest, filefin);
+                                    sLSRP.sendPacket(filefin_forward);
+                                }
                             }
                             break;
                         case "ACK_FILE_FIN":
@@ -282,8 +306,11 @@ public class ServerThread implements Runnable {
                                 sLSRP.application.finnish = true;
                                 System.out.println("file transfer is done");
                             }else{
-                                Packet fileack_forward = new Packet(Config.ROUTER_ID, "ACK_FILE_FIN", Config.Neighbors_table.get(sLSRP.routing_table.get(filefinack_dest)).Dest, filefinack);
-                                sLSRP.sendPacket(fileack_forward);
+                                if(filefinack.getMaxHop() > 0) {
+                                    filefinack.decreaseMaxHop();
+                                    Packet fileack_forward = new Packet(Config.ROUTER_ID, "ACK_FILE_FIN", Config.Neighbors_table.get(sLSRP.routing_table.get(filefinack_dest)).Dest, filefinack);
+                                    sLSRP.sendPacket(fileack_forward);
+                                }
                             }
                             break;
 

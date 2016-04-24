@@ -14,8 +14,8 @@ public class DataMessage implements Serializable{
     private int Seqno; // indicates the order
     private String Type; // indicates whether it is syn, data or fin
     private String Crossed_Path = Config.ROUTER_ID+"";
-//    private Checksum Crc32;
     private long crc32code;
+    private int MaxHop = sLSRP.graph.size();
 
     public DataMessage(int s, int r, byte [] d, int seq, long c, String t){
         this.SenderId = s;
@@ -64,6 +64,14 @@ public class DataMessage implements Serializable{
 
     public void setCrossed_Path(String p){
         this.Crossed_Path = p;
+    }
+
+    public int getMaxHop(){
+        return this.MaxHop;
+    }
+
+    public void decreaseMaxHop(){
+        this.MaxHop--;
     }
 
 }

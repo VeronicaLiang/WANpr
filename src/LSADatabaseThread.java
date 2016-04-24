@@ -1,7 +1,7 @@
-import javax.annotation.processing.SupportedSourceVersion;
+
 import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.concurrent.SynchronousQueue;
+
+import java.util.LinkedList;
 
 /**
  * deal with LSA messages.
@@ -12,83 +12,138 @@ public class LSADatabaseThread implements Runnable {
     private Packet recv;
     private boolean printmap = false;
     public static long fail_time = -10000;
+    public static LinkedList<Packet> queue = new LinkedList<>();
+    public static LinkedList<LSAMessage> holdlist  = new LinkedList<>();
 
+    public LSADatabaseThread(){
+
+    }
     public LSADatabaseThread (Packet p){
         this.recv = p;
     }
 
     public void run(){
-//        System.out.println("the fail time: "+ fail_time);
-        LSAMessage cur = recv.getLSA();
-//        System.out.println("from received packet "+ cur.getLinkID() + " has "+cur.getLinkCount()+ " link counts");
-        long now = System.currentTimeMillis();
+        while(!sLSRP.Failure) {
+//            System.out.println("running "+queue.size());
+            while(!queue.isEmpty()){
+//                System.out.println("inside ~~~~ "+ queue.size());
+                recv = queue.removeFirst();
+                LSAMessage cur = recv.getLSA();
 
-        if((now - fail_time < 10000)&&(!cur.getType().equals("FAIL_LSA"))){
-            //todo keep everything just dont update
-            // ignore the packet
-            // although ACKed the packet, don't update lsadb
-            System.out.println(" In the status of ignoring all LSA packets ");
-        }else {
-            long check_age = now-cur.getTime_created();
+                long now = System.currentTimeMillis();
 
-            if(check_age > Config.AGE_LIMITATION){
-                //if age is larger than the limitation, too old, ignore
-                System.out.println("Printing inside the LSADatabaseThread, the message is too old");
-                //ignore the packet.
-            }else{
-                int id = Integer.parseInt(cur.getLinkID());
-                LSADatabase workdb = sLSRP.lsadb.get(id);
-                String lsa_type = recv.getType();
-                if(workdb != null) {
-                    if (cur.getSeqno() > workdb.seqno) {
-                        for(int direct_neigh: Config.Neighbors_table.keySet()){
-                            if(!sLSRP.Established_Connect.containsKey(direct_neigh)){
-                                continue;
+                if((now - fail_time < 10000)&&(!cur.getType().equals("FAIL_LSA"))){
+                    //todo keep everything just dont update
+                    // ignore the packet
+                    // although ACKed the packet, don't update lsadb
+                    System.out.println(" In the status of ignoring all LSA packets ");
+                    holdlist.add(cur);
+                }else {
+                    if(!holdlist.isEmpty()){
+                        HoldMessageUpdate();
+                    }
+                    long check_age = now-cur.getTime_created();
+
+                    if(check_age < Config.AGE_LIMITATION){
+                        //if age is larger than the limitation, too old
+                        //ignore the packet.
+
+                        int id = Integer.parseInt(cur.getLinkID());
+                        LSADatabase workdb = sLSRP.lsadb.get(id);
+                        String lsa_type = recv.getType();
+                        if(workdb != null) {
+                            if (cur.getSeqno() > workdb.seqno) {
+                                // else means the LSA has been seen/outdated
+                                for(int direct_neigh: Config.Neighbors_table.keySet()){
+                                    if(!sLSRP.Established_Connect.containsKey(direct_neigh)){
+                                        continue;
+                                    }
+
+                                    // don't send to source and initial router
+                                    // todo check whether this is right without sending to initial router
+                                    if((direct_neigh != recv.getId())&&(direct_neigh != id) ) {
+                                        Packet lsapack = new Packet(Config.ROUTER_ID, lsa_type, Config.Neighbors_table.get(direct_neigh).Dest, cur);
+                                        lsapack.setLSAMessage(cur);
+                                        sLSRP.sendPacket(lsapack);
+                                    }
+                                }
+
+                                //update lsa database
+                                workdb.fromLSAMessage(cur);
+                                sLSRP.lsadb.put(id, workdb);
+
+                                //update linkstates
+                                UpdateLinks(cur);
+
+
+                            }
+                        }else{
+                            // no entry in lsa database for this router, add new one
+//                            System.out.println("no entry in lsa database for this router, add new one");
+                            LSADatabase newentry = new LSADatabase();
+                            newentry.fromLSAMessage(cur);
+                            sLSRP.lsadb.put(Integer.parseInt(cur.getLinkID()), newentry);
+
+                            for(int direct_neigh: sLSRP.Established_Connect.keySet()){
+                                // don't send to source and initial router
+                                if((direct_neigh != recv.getId())&&(direct_neigh != id) ) {
+                                    Packet lsapack = new Packet(Config.ROUTER_ID, lsa_type, Config.Neighbors_table.get(direct_neigh).Dest, cur);
+                                    lsapack.setLSAMessage(cur);
+//                                    System.out.println("send out lsa packet " + lsa_type);
+                                    sLSRP.sendPacket(lsapack);
+                                }
                             }
 
-                            // don't send to source and initial router
-                            // todo check whether this is right without sending to initial router
-                            if((direct_neigh != recv.getId())&&(direct_neigh != id) ) {
-                                Packet lsapack = new Packet(Config.ROUTER_ID, lsa_type, Config.Neighbors_table.get(direct_neigh).Dest, cur);
-                                lsapack.setLSAMessage(cur);
-                                sLSRP.sendPacket(lsapack);
-                            }
+                            // update linkstates
+                            UpdateLinks(cur);
                         }
+                    }
+                }
+            }
+
+            try {
+                Thread.sleep(3000);
+            }catch (Exception e){
+
+            }
+        }
+
+        System.out.println("LSADatabase Thread Stops");
+
+    }
+
+    private void HoldMessageUpdate(){
+        while(!holdlist.isEmpty()){
+            LSAMessage hold = holdlist.removeFirst();
+            long check_age = System.currentTimeMillis()-hold.getTime_created();
+            if(check_age < Config.AGE_LIMITATION){
+                int id = Integer.parseInt(hold.getLinkID());
+                LSADatabase holddb = sLSRP.lsadb.get(id);
+
+                if(holddb != null) {
+                    if (hold.getSeqno() > holddb.seqno) {
+                        // else means the LSA has been seen/outdated
 
                         //update lsa database
-                        workdb.fromLSAMessage(cur);
-                        sLSRP.lsadb.put(id, workdb);
+                        holddb.fromLSAMessage(hold);
+                        sLSRP.lsadb.put(id, holddb);
 
                         //update linkstates
-                        UpdateLinks(cur);
+                        UpdateLinks(hold);
 
-
-                    }else{
-                        // ignore the message
                     }
                 }else{
                     // no entry in lsa database for this router, add new one
                     LSADatabase newentry = new LSADatabase();
-                    newentry.fromLSAMessage(cur);
-                    sLSRP.lsadb.put(Integer.parseInt(cur.getLinkID()), newentry);
-
-                    for(int direct_neigh: sLSRP.Established_Connect.keySet()){
-                        // don't send to source and initial router
-                        if((direct_neigh != recv.getId())&&(direct_neigh != id) ) {
-                            Packet lsapack = new Packet(Config.ROUTER_ID, lsa_type, Config.Neighbors_table.get(direct_neigh).Dest, cur);
-                            lsapack.setLSAMessage(cur);
-                            sLSRP.sendPacket(lsapack);
-                        }
-                    }
+                    newentry.fromLSAMessage(hold);
+                    sLSRP.lsadb.put(Integer.parseInt(hold.getLinkID()), newentry);
 
                     // update linkstates
-                    UpdateLinks(cur);
+                    UpdateLinks(hold);
                 }
-
-
-
             }
         }
+
     }
 
     private int CountNodes (){

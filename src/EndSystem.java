@@ -93,7 +93,7 @@ public class EndSystem {
                 sentdatahistory.put(seqno, false);
                 long curtime = System.currentTimeMillis();
                 long timepassed = curtime - sendtime;
-                while(timepassed < 5000){
+                while(timepassed < 50000){
                     curtime = System.currentTimeMillis();
                     if(sentdatahistory.get(seqno)){
 //                        System.out.println("Receive the ACK for seqno "+seqno);
@@ -125,6 +125,9 @@ public class EndSystem {
 
 
     public void startComm (){
+        //clean the routing records first
+        routing_records = new Hashtable<>();
+
         byte [] empty = new byte [0];
         Checksum check_ini = new CRC32();
         int crccode_tmp = 0;
@@ -151,6 +154,7 @@ public class EndSystem {
     }
 
     public void receive(DataMessage m) throws Exception{
+        System.out.println(seqno + "\t \t \t "+recvseqno);
         recvseqno = m.getSeqno();
         if(recvseqno == seqno+1){
             // packets have to be received in order
@@ -172,6 +176,8 @@ public class EndSystem {
                 }
                 seqno = m.getSeqno();
 
+            }else{
+                System.out.println("The message has wrong data");
             }
             byte [] empyt = new byte[0];
             DataMessage dataackmes = new DataMessage(Config.ROUTER_ID,m.getSenderId(), empyt, recvseqno+1, 0, "ACK_FILE_TRANSFER");

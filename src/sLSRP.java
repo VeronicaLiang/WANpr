@@ -36,6 +36,7 @@ public class sLSRP {
 
     // the endsystem instance
     public static EndSystem application = new EndSystem();
+    public static LSADatabaseThread lsadth = new LSADatabaseThread();
 
     public static ArrayList<Integer> faillist = new ArrayList<>();
 
@@ -84,7 +85,9 @@ public class sLSRP {
                         //remove the failed link
                         synchronized (sLSRP.links){
                             if(sLSRP.links.containsKey(faillink)) {
+                                System.out.println("remove fail link "+ faillink);
                                 sLSRP.links.remove(faillink);
+                                LSAThread.sendFailureLSA(faillink);
                             }
                         }
 
@@ -128,6 +131,8 @@ public class sLSRP {
                         // Start the LSA Message Thread
                         LSAThread lsa = new LSAThread();
                         new Thread(lsa).start();
+
+                        new Thread(lsadth).start();
                     }else{
                         // empty fail list
                         faillist = new ArrayList<>();
@@ -215,6 +220,9 @@ public class sLSRP {
         // Start the LSA Message Thread
         LSAThread lsa = new LSAThread();
         new Thread(lsa).start();
+
+        // Start the LSA Database Thread
+        new Thread(lsadth).start();
 
         User_Interface();
 

@@ -92,7 +92,8 @@ public class LSAThread implements Runnable{
                 faillsasenthistory.put(seq_no, new PacketHistory(faillsapack, direct_neigh) );
             }
 //          synchronized (seq_no) {
-            LSADatabaseThread.fail_time = System.currentTimeMillis();
+            sLSRP.lsadth.fail_time = System.currentTimeMillis();
+//            LSADatabaseThread.fail_time = System.currentTimeMillis();
             seq_no++;
 //          }
             sLSRP.sendPacket(faillsapack);
