@@ -4,11 +4,11 @@
 public class Neighbors {
     public String IP;
     public String Dest;
-    public String Port;
+    public int Port;
     public int Router_ID;
     public boolean Found = false;
 
-    Neighbors(String ip, String dest, String port, int id){
+    Neighbors(String ip, String dest, int port, int id){
         this.IP = ip;
         this.Dest = dest;
         this.Port = port;

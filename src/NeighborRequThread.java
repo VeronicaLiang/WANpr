@@ -11,7 +11,7 @@ public class NeighborRequThread implements Runnable {
 
     @Override
     public void run (){
-//        System.out.println("Inside the NEighnor Requ");
+        System.out.println("Inside the NEighnor Requ");
 //        System.out.println(sendflag + "\t\t "+sLSRP.Failure);
 //        while(sendflag && !sLSRP.Failure) {
         while (!sLSRP.Failure){

@@ -101,14 +101,13 @@ public class sLSRP {
                     }
                     break;
                 case 2:
-                    System.out.println("Reovering the router/link ... ");
+                    System.out.println("Recovering the router/link ... ");
                     synchronized (Established_Connect) {
                         Established_Connect = new Hashtable<>();
                     }
 
                     sLSRP.starttime = System.currentTimeMillis();
                     if(Failure) {
-                        System.out.println("Start threads ... ");
                         Failure = false;
                         ServerThread.running = true;
                         Runnable serv = new ServerThread();
@@ -179,9 +178,17 @@ public class sLSRP {
                 case 7:
                     sLSRP.Failure = true;
                     running_flag = false;
+                    try {
+                        Thread.sleep(10000);
+                    }catch(Exception e){
+
+                    }
                     break;
             }
+            System.out.println(running_flag);
         }
+        System.out.println("END");
+        System.exit(0);
 
     }
 
@@ -191,7 +198,7 @@ public class sLSRP {
             sLSRP.edgeno = Integer.parseInt(args[1]);
         }
 
-        sLSRP.starttime = System.currentTimeMillis();
+
         try {
             String file = args[0];
             Config.configuration(file);
@@ -201,6 +208,7 @@ public class sLSRP {
 
 //        System.out.println(Config.Neighbors_table.keySet() );
 
+        sLSRP.starttime = System.currentTimeMillis();
         // Start running server side
         ServerThread ser = new ServerThread();
         new Thread (ser).start();
@@ -233,21 +241,20 @@ public class sLSRP {
 //            e.printStackTrace();
 //        }
 
+        System.exit(0);
+
     }
 
     public static void sendPacket (Packet m){
-        int servPort = Config.SERV_PORT;
+        String send_dest = m.getDestination();
+        int testnodeid = Config.Host_Id.get(send_dest);
+        int servPort = Config.Id_Port.get(testnodeid);
         try {
-//            System.out.println("destination "+m.getDestination());
-            String send_dest = m.getDestination();
-            int testnodeid = Config.Host_Id.get(send_dest);
-
             if(!sLSRP.faillist.contains(testnodeid)){
+//                System.out.println("sending packet to "+send_dest+" having port no "+servPort);
                 Socket socket = new Socket(m.getDestination(), servPort);
                 ObjectOutputStream outputstream  = new ObjectOutputStream(socket.getOutputStream());
                 outputstream.writeObject(m);
-//            System.out.println("Connected to server...");
-
                 socket.close();
             }
 

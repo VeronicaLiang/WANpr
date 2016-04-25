@@ -28,6 +28,7 @@ public class Config {
 //    public static Hashtable<Integer, Integer> Established_Connect = new Hashtable<>(); // key is Router ID
     public static Hashtable<Integer, String> Id_Host = new Hashtable<>(); // key is Router IP's last digits , value is the host name
     public static Hashtable<String, Integer> Host_Id = new Hashtable<>();
+    public static Hashtable<Integer, Integer> Id_Port = new Hashtable<>();// key is the Router's ID, value is the serv port number
 
     public static void configuration (String inputFile) throws IOException {
         String line;
@@ -44,17 +45,19 @@ public class Config {
                         // Assume the current format is NEIGHBOR = IP, Port
                         String[] add_tmp = tmp[1].split(",");
                         String ip_addr = add_tmp[0].trim();
-                        String port_no = add_tmp[1].trim();
+                        int port_no = Integer.parseInt(add_tmp[1].trim());
                         Neighbors new_one = new Neighbors(ip_addr,"unknown",port_no, -1);
                         Neighbors_List.add(new_one);
                     } else if(para.equals("HELLO_INTERVAL")) {
-//                        HELLO_INTERVAL = Integer.parseInt(val) * 1000;
+                        HELLO_INTERVAL = Integer.parseInt(val);
                     }else if(para.equals("UPDATE_INTERVAL")) {
-//                        UPDATE_INTERVAL = Integer.parseInt(val) * 1000;
+                        UPDATE_INTERVAL = Integer.parseInt(val);
                     }else if(para.equals("FORWARD_INTERVAL")) {
-//                        FORWARD_INTERVAL = Integer.parseInt(val) * 1000;
+                        FORWARD_INTERVAL = Integer.parseInt(val);
                     }else if(para.equals("ROUTER_ID")){
                         ROUTER_ID = Integer.parseInt(val);
+                    }else if(para.equals("SERV_PORT")){
+                        SERV_PORT = Integer.parseInt(val);
                     }
                 }
             }
@@ -65,27 +68,30 @@ public class Config {
 
 
 
+
         // Register itself
         InetAddress inetAddr = InetAddress.getLocalHost();
         ip = inetAddr.getHostAddress();
         System.out.println("My ip: " + ip);
         String hostname = inetAddr.getHostName();
         System.out.println("My host name: " + hostname);
-        String output = ip + "\t" + ROUTER_ID + "\t" + hostname + "\t" + "4555\n";
+//        String output = ip + "\t" + ROUTER_ID + "\t" + hostname + "\t" + "4555\n";
+        String output = ip + "\t" + ROUTER_ID + "\t" + hostname + "\t" + SERV_PORT+"\n";
         System.out.println(output);
 
         // Register self to the host_list file.
         try {
-            File file = new File("../host_list");
-            if (!file.exists()) {
-                file.createNewFile();
+            File file = new File("host_list");
+            if (file.createNewFile()) {
                 System.out.println("create new file");
+            }else{
+                System.out.println("File exist");
             }
-//            FileWriter fw = new FileWriter(file.getAbsoluteFile(), true);
-//            synchronized (fw){
-//                fw.write(output);
-//            }
-//            fw.close();
+            FileWriter fw = new FileWriter(file.getAbsoluteFile(), true);
+            synchronized (fw){
+                fw.write(output);
+            }
+            fw.close();
         }catch (Exception e) {
             e.printStackTrace();
         }
@@ -106,6 +112,8 @@ public class Config {
                     String [] tmp_host = records[2].trim().split("\\.");
                     Id_Host.put(Integer.parseInt(records[1].trim()),tmp_host[0].trim());
                     Host_Id.put(records[2].trim(),Integer.parseInt(records[1].trim()));
+                    int portno = Integer.parseInt(records[3].trim());
+                    Id_Port.put(Integer.parseInt(records[1].trim()), portno);
                 }
                 bufferedreader.close();
 
@@ -135,7 +143,7 @@ public class Config {
 //                    System.out.println("remove one entry");
                     check_neigh.Dest = host_name;
                     // TODO hard code the port number, need to know how to sign
-                    check_neigh.Port = "4545";
+                    check_neigh.Port = Id_Port.get(id_table.get(check_ip[check_ip.length - 1]));
                     check_neigh.Router_ID = id_table.get(check_ip[check_ip.length - 1]);
                     Neighbors_table.put(check_neigh.Router_ID,check_neigh);
                     check_neigh.Found = true;
@@ -154,6 +162,8 @@ public class Config {
             }
         }
         System.out.println("done with neighbors");
+        System.out.println("My Serv Port is "+SERV_PORT);
+        System.out.println(Id_Port);
     }
 }
 

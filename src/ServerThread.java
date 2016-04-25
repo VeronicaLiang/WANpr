@@ -28,6 +28,7 @@ public class ServerThread implements Runnable {
 //            byte[] byteBuffer = new byte[BUFSIZE];  // Receive buffer
 
 
+            System.out.println("Server is up");
 //            while(!sLSRP.Failure){
             while(running){
                 Socket clntSock = servSock.accept();
@@ -65,7 +66,7 @@ public class ServerThread implements Runnable {
 //
                     switch (packet_type) {
                         case "NEIGHBOR_REQUEST":
-//                          System.out.println("NEIGHBOR REQUEST RECEIVED from "+recv.getId());
+                          System.out.println("NEIGHBOR REQUEST RECEIVED from "+recv.getId());
                             int request_id = recv.getId();
                             Neighbors check = Config.Neighbors_table.get(request_id);
                             if(check != null){
