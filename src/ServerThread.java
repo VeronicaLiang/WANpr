@@ -45,32 +45,27 @@ public class ServerThread implements Runnable {
                     if(sLSRP.faillist.contains(recv.getId())){
                         continue; // if the packet is from filed link, ignore it.
                     }
-//                    double dropval = Math.random();
-////                    System.out.println("Receive Packet "+packet_type+"  "+dropval);
-//                    if(dropval < Config.DROP_RATE){
-////                        System.out.println("Packet is dropped due to the congestion ");
-//                        inputstream.close();
-//                        clntSock.close();
-//                        continue;
-//                    }
-//
-//                    double errorval = Math.random();
-//                    if(errorval < Config.ERROR_RATE){
-//                        inputstream.close();
-//                        clntSock.close();
-//                        continue;
-//                    }
+                    double dropval = Math.random();
+//                    System.out.println("Receive Packet "+packet_type+"  "+dropval);
+                    if(dropval < Config.DROP_RATE){
+//                        System.out.println("Packet is dropped due to the congestion ");
+                        inputstream.close();
+                        clntSock.close();
+                        continue;
+                    }
+
+
 
 //                    System.out.println("Receive a Packet with seqno: "+recv.getSeqno() +" with type of "+recv.getType());
                     int ack_seqno = recv.getSeqno()+1;
 //
                     switch (packet_type) {
                         case "NEIGHBOR_REQUEST":
-                          System.out.println("NEIGHBOR REQUEST RECEIVED from "+recv.getId());
+//                          System.out.println("NEIGHBOR REQUEST RECEIVED from "+recv.getId());
                             int request_id = recv.getId();
                             Neighbors check = Config.Neighbors_table.get(request_id);
                             if(check != null){
-                                System.out.println("send back to "+check.Dest);
+//                                System.out.println("send back to "+check.Dest);
                                 Packet acc = new Packet(Config.ROUTER_ID,"ACK_NEIGH", check.Dest,ack_seqno);
 
                                 sLSRP.sendPacket(acc);
@@ -115,6 +110,12 @@ public class ServerThread implements Runnable {
                             clntSock.close();
                             break;
                         case "LSA_MESSAGE":
+                            double errorval = Math.random();
+                            if(errorval < Config.ERROR_RATE){
+                                inputstream.close();
+                                clntSock.close();
+                                break;
+                            }
                             LSAMessage receivelsa = recv.getLSA();
                             int lsaackno = receivelsa.getSeqno() + 1;
 //                            System.out.println("*******");

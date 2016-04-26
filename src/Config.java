@@ -21,8 +21,8 @@ public class Config {
     public static long LSA_TIMER = 5000;       // the timer is 5 seconds
     public static long ALIVE_TIMER = 5000;
     public static int SERV_PORT = 5574;
-    public static double DROP_RATE = 0.1;
-    public static double ERROR_RATE = 0.1;
+    public static double DROP_RATE = 0;
+    public static double ERROR_RATE = 0;
     public static Hashtable<Integer, Neighbors> Neighbors_table = new Hashtable<>(); // key is the Router ID
     // the key is the directed neighbor, value is the cost. At beginning, the cost is set to 0
 //    public static Hashtable<Integer, Integer> Established_Connect = new Hashtable<>(); // key is Router ID
@@ -58,6 +58,10 @@ public class Config {
                         ROUTER_ID = Integer.parseInt(val);
                     }else if(para.equals("SERV_PORT")){
                         SERV_PORT = Integer.parseInt(val);
+                    }else if(para.equals("DROP_RATE")){
+                        DROP_RATE = Double.parseDouble(val);
+                    }else if(para.equals("ERROR_RATE")){
+                        ERROR_RATE = Double.parseDouble(val);
                     }
                 }
             }
@@ -83,9 +87,9 @@ public class Config {
         try {
             File file = new File("host_list");
             if (file.createNewFile()) {
-                System.out.println("create new file");
+//                System.out.println("create new file");
             }else{
-                System.out.println("File exist");
+//                System.out.println("File exist");
             }
             FileWriter fw = new FileWriter(file.getAbsoluteFile(), true);
             synchronized (fw){
@@ -132,7 +136,7 @@ public class Config {
             for(int i = 0;i<Neighbors_List.size();i++){
                 Neighbors check_neigh = Neighbors_List.get(i);
                 if (check_neigh.Found){
-                    System.out.println("Continue....");
+//                    System.out.println("Continue....");
                     continue;
                 }
                 // TODO again, use only the last part as the key, which should be pay more attention
@@ -142,7 +146,6 @@ public class Config {
                 if(host_name != null){
 //                    System.out.println("remove one entry");
                     check_neigh.Dest = host_name;
-                    // TODO hard code the port number, need to know how to sign
                     check_neigh.Port = Id_Port.get(id_table.get(check_ip[check_ip.length - 1]));
                     check_neigh.Router_ID = id_table.get(check_ip[check_ip.length - 1]);
                     Neighbors_table.put(check_neigh.Router_ID,check_neigh);

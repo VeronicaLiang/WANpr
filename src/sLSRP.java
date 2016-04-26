@@ -44,7 +44,7 @@ public class sLSRP {
 
     }
 
-    public static void User_Interface(){
+    public static int User_Interface(){
         boolean running_flag = true;
         while(running_flag) {
             System.out.println("Please select action:");
@@ -178,17 +178,13 @@ public class sLSRP {
                 case 7:
                     sLSRP.Failure = true;
                     running_flag = false;
-                    try {
-                        Thread.sleep(10000);
-                    }catch(Exception e){
-
-                    }
                     break;
             }
-            System.out.println(running_flag);
+//            System.out.println(running_flag);
         }
         System.out.println("END");
         System.exit(0);
+        return 1;
 
     }
 
@@ -232,7 +228,8 @@ public class sLSRP {
         // Start the LSA Database Thread
         new Thread(lsadth).start();
 
-        User_Interface();
+
+        int a = User_Interface();
 
 //        File register_file = new File("host_list");
 //        try {

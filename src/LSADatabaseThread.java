@@ -33,10 +33,8 @@ public class LSADatabaseThread implements Runnable {
                 long now = System.currentTimeMillis();
 
                 if((now - fail_time < 10000)&&(!cur.getType().equals("FAIL_LSA"))){
-                    //todo keep everything just dont update
-                    // ignore the packet
-                    // although ACKed the packet, don't update lsadb
-                    System.out.println(" In the status of ignoring all LSA packets ");
+                    // hold everything before update lsadb for a while
+//                    System.out.println(" In the status of ignoring all LSA packets ");
                     holdlist.add(cur);
                 }else {
                     if(!holdlist.isEmpty()){
